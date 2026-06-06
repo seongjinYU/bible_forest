@@ -1,24 +1,18 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import MainScreen from "@/components/MainScreen";
+import { getSessionUser } from "@/lib/auth";
+import { createSupabaseServerClient } from "@/lib/supabase";
 
 export default async function Home() {
-  const cookieStore = await cookies();
-  const userCookie = cookieStore.get("user");
+  const user = await getSessionUser();
+  if (!user) redirect("/register");
 
-  if (!userCookie) {
-    redirect("/register");
-  }
+  const supabase = createSupabaseServerClient();
+  const { data: team } = await supabase
+    .from("teams")
+    .select("name")
+    .eq("id", user.team_id)
+    .single();
 
-  let name = "";
-  let team = "";
-  try {
-    const parsed = JSON.parse(decodeURIComponent(userCookie.value));
-    name = parsed.name ?? "";
-    team = parsed.team ?? "";
-  } catch {
-    redirect("/register");
-  }
-
-  return <MainScreen name={name} team={team} />;
+  return <MainScreen name={user.nickname} team={team?.name ?? ""} />;
 }
