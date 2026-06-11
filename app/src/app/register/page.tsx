@@ -1,22 +1,35 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TEAMS } from "@/constants/teams";
 
 const MAX_NAME_LENGTH = 10;
 
 const STEPS = ["팀선택", "이름"] as const;
 
+interface Team {
+  id: string;
+  name: string;
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [selectedTeam, setSelectedTeam] = useState("");
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [name, setName] = useState("");
   const [nameStatus, setNameStatus] = useState<"idle" | "confirmed">("idle");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    fetch("/api/v1/teams")
+      .then((r) => r.json())
+      .then((data) => setTeams(data.teams ?? []));
+  }, []);
 
   const isNameTooLong = name.length > MAX_NAME_LENGTH;
 
@@ -34,9 +47,21 @@ export default function RegisterPage() {
     setShowConfirmModal(true);
   }
 
-  function handleConfirm() {
-    const value = JSON.stringify({ name: name.trim(), team: selectedTeam });
-    document.cookie = `user=${encodeURIComponent(value)}; max-age=7776000; path=/; SameSite=Lax`;
+  async function handleConfirm() {
+    if (!selectedTeam) return;
+    setIsSubmitting(true);
+    setErrorMessage("");
+    const res = await fetch("/api/v1/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nickname: name.trim(), team_id: selectedTeam.id }),
+    });
+    setIsSubmitting(false);
+    if (!res.ok) {
+      const data = await res.json();
+      setErrorMessage(data.message ?? "회원가입에 실패했습니다.");
+      return;
+    }
     setShowConfirmModal(false);
     setStep(3);
   }
@@ -97,7 +122,7 @@ export default function RegisterPage() {
               <div className="border border-[#DDDDDD] rounded-[8px] px-6 py-6 flex flex-col gap-2">
                 <div className="flex items-center gap-4">
                   <span className="w-[34px] text-[18px] font-normal text-[#888888] font-noto shrink-0">팀</span>
-                  <span className="text-[18px] font-normal text-[#222222] font-noto">{selectedTeam}</span>
+                  <span className="text-[18px] font-normal text-[#222222] font-noto">{selectedTeam?.name}</span>
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="w-[34px] text-[18px] font-normal text-[#888888] font-noto shrink-0">이름</span>
@@ -106,12 +131,18 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            {errorMessage && (
+              <p className="px-4 pb-2 text-[14px] text-[#F32F15] text-center font-pretendard">
+                {errorMessage}
+              </p>
+            )}
             {/* 확인 버튼 */}
             <button
               onClick={handleConfirm}
-              className="w-full h-[54px] bg-[#31C678] text-white text-[20px] font-medium font-noto"
+              disabled={isSubmitting}
+              className="w-full h-[54px] bg-[#31C678] text-white text-[20px] font-medium font-noto disabled:opacity-60"
             >
-              확인
+              {isSubmitting ? "처리 중..." : "확인"}
             </button>
           </div>
         </div>
@@ -184,18 +215,18 @@ export default function RegisterPage() {
           {/* Step 1: 팀 배지 그리드 */}
           {step === 1 && (
             <div className="flex flex-wrap justify-center gap-[15px]">
-              {TEAMS.map((team) => (
+              {teams.map((team) => (
                 <button
-                  key={team}
+                  key={team.id}
                   onClick={() => setSelectedTeam(team)}
                   className={cn(
                     "px-4 py-3 rounded-[8px] border text-[18px] font-normal font-noto transition-colors",
-                    selectedTeam === team
+                    selectedTeam?.id === team.id
                       ? "bg-[#F6FEF8] border-[#46AE78] text-[#222222]"
                       : "bg-white border-[#DDDDDD] text-[#222222]"
                   )}
                 >
-                  {team}
+                  {team.name}
                 </button>
               ))}
             </div>
@@ -261,10 +292,10 @@ export default function RegisterPage() {
           {step === 1 ? (
             <button
               onClick={() => setStep(2)}
-              disabled={!selectedTeam}
+              disabled={!selectedTeam || teams.length === 0}
               className={cn(
                 "flex-1 h-[54px] rounded-[8px] text-[20px] font-medium transition-colors font-noto",
-                selectedTeam
+                selectedTeam && teams.length > 0
                   ? "bg-[#31C678] text-white"
                   : "bg-[#F5F5F5] text-[#666666]"
               )}

@@ -1,4 +1,4 @@
-# API 정의서 (v1) — Bible / Tree / Forest
+# API 정의서 (v1) — Bible / Tree / Forest / Auth / Admin
 
 > 관련: [backend-decisions.md](./backend-decisions.md) · [db-schema.md](./db-schema.md)
 > 공통 규칙은 backend-decisions 4장(코드 컨벤션) 참고. 모든 응답은 **snake_case**.
@@ -6,7 +6,9 @@
 
 ## 공통 규약
 
-- **인증**: 쿠키 `user_id` 세션. 미로그인 시 모든 사용자 API는 `401 { "message": "로그인이 필요합니다." }`.
+- **인증**: 쿠키 `user_id` 세션. 미로그인 시 사용자 API는 `401 { "message": "로그인이 필요합니다." }`.
+- **어드민 인증**: `admin/*`는 별도 `admin_session` 쿠키(값 `"true"`, 8시간) 사용 — §6 참고. 미인증 시 `403`.
+- **공개 엔드포인트(세션 불요)**: `POST /auth/register`, `POST /auth/logout`, `GET /teams`, `POST /admin/login`.
 - **에러 포맷**: `{ "message": "<한국어 안내>" }` + HTTP status.
 - **상태코드**: 200(조회/수정), 201(생성), 400(검증 실패), 401(미로그인), 403(권한/기간), 404(없음), 500(서버).
 - **장수/검증 기준**: `constants/bible.ts`의 `NT_BOOKS`(신약 27권) / `TOTAL_NT_CHAPTERS = 260`.
@@ -185,7 +187,210 @@
 
 **에러**: `404 { "message": "팀을 찾을 수 없습니다." }`
 
-> 전체 팀 목록/랭킹은 기존 [`GET /api/v1/teams`](../src/app/api/v1/teams/route.ts) 사용. 본 API는 단일 팀 숲 상세용.
+> 전체 팀 목록/랭킹은 [`GET /api/v1/teams`](#5-2-get-apiv1teams)(§5-2) 사용. 본 API는 단일 팀 숲 상세용.
+
+---
+
+## 4. Auth (인증)
+
+### 4-1. `POST /api/v1/auth/register`
+닉네임 + 팀 선택으로 회원가입. 성공 시 `user_id` 세션 쿠키를 발급해 자동 로그인.
+
+**Request Body**
+```json
+{ "nickname": "홍길동", "team_id": "uuid" }
+```
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `nickname` | string | 사용자 닉네임 (필수) |
+| `team_id` | string(uuid) | 소속 팀 ID (필수, 실재하는 팀) |
+
+**처리 (BE)**
+1. `nickname`/`team_id` 누락 → `400`
+2. `team_id` 실재 여부 확인 → 없으면 `400`
+3. `users` insert
+4. `user_id` 쿠키 설정 (`httpOnly`, `sameSite=lax`, `maxAge=60일`, `path=/`)
+
+**Response 201**
+```json
+{
+  "user": {
+    "id": "uuid",
+    "nickname": "홍길동",
+    "team_id": "uuid",
+    "is_admin": false,
+    "trees_earned": 0,
+    "special_tree_earned": false,
+    "created_at": "2026-06-10T05:00:00Z"
+  }
+}
+```
+- `user`: 생성된 `users` 레코드 전체.
+
+**에러**
+| status | message | 조건 |
+|--------|---------|------|
+| 400 | `"닉네임과 팀을 선택해주세요."` | 필수값 누락 |
+| 400 | `"유효하지 않은 팀입니다."` | 존재하지 않는 `team_id` |
+| 500 | `"회원가입에 실패했습니다."` | DB insert 실패 |
+
+---
+
+### 4-2. `POST /api/v1/auth/logout`
+`user_id` 세션 쿠키 삭제.
+
+**Request**: 없음
+
+**Response 200**
+```json
+{ "message": "로그아웃 되었습니다." }
+```
+
+---
+
+### 4-3. `DELETE /api/v1/auth/withdraw`
+회원 탈퇴. 세션 사용자 레코드 삭제 + 세션 쿠키 삭제.
+
+**Request**: 없음 (쿠키 세션)
+
+**처리 (BE)**
+1. 세션 검증 → 미로그인 시 `401`
+2. `users` 레코드 삭제
+3. `user_id` 쿠키 삭제
+
+**Response 200**
+```json
+{ "message": "탈퇴가 완료되었습니다." }
+```
+
+**에러**
+| status | message | 조건 |
+|--------|---------|------|
+| 401 | `"로그인이 필요합니다."` | 미로그인 |
+| 500 | `"탈퇴에 실패했습니다."` | DB delete 실패 |
+
+> ⚠️ 현재 `users` 삭제만 수행. 연관 `bible_progress`/`trees`의 정리는 DB 제약(FK cascade, [db-schema.md](./db-schema.md))에 따름.
+
+---
+
+## 5. User & Team (사용자 / 팀)
+
+### 5-1. `GET /api/v1/users/me`
+로그인 사용자 본인 정보 + 팀명 + 누적 점수 조회.
+
+**Request**: 없음 (쿠키 세션)
+
+**Response 200**
+```json
+{
+  "id": "uuid",
+  "nickname": "홍길동",
+  "team_id": "uuid",
+  "team_name": "1팀",
+  "trees_earned": 2,
+  "special_tree_earned": false,
+  "my_score": 5
+}
+```
+| 필드 | 설명 |
+|------|------|
+| `team_name` | 소속 팀 이름 (조회 실패 시 `""`) |
+| `my_score` | 본인 소유 나무 `points` 합계 (서버 계산값) |
+
+**에러**
+| status | message | 조건 |
+|--------|---------|------|
+| 401 | `"로그인이 필요합니다."` | 미로그인 |
+
+---
+
+### 5-2. `GET /api/v1/teams`
+전체 팀 목록 + 팀별 집계(인원/나무 수/점수). `total_score` 내림차순 정렬. 회원가입 팀 선택과 랭킹에 사용.
+
+**인증**: 없음 (공개) — 회원가입 전 팀 선택에 쓰이므로 세션 불요.
+
+**Response 200**
+```json
+{
+  "teams": [
+    { "id": "uuid", "name": "1팀", "member_count": 12, "tree_count": 34, "total_score": 34 }
+  ]
+}
+```
+| 필드 | 설명 |
+|------|------|
+| `member_count` | 팀 소속 사용자 수 |
+| `tree_count` | 팀 나무 수 |
+| `total_score` | 팀 나무 `points` 합계 (정렬 기준, 내림차순) |
+
+**에러**
+| status | message | 조건 |
+|--------|---------|------|
+| 500 | `"팀 정보를 불러올 수 없습니다."` | 조회 실패 |
+
+---
+
+## 6. Admin (어드민)
+
+> 어드민 인증은 사용자 세션과 **별도**. `POST /admin/login`으로 발급되는 `admin_session` 쿠키(값 `"true"`, `httpOnly`, `maxAge=8시간`)를 사용. 어드민 API는 이 쿠키가 없으면 `403`.
+
+### 6-1. `POST /api/v1/admin/login`
+어드민 비밀번호 검증 후 `admin_session` 쿠키 발급.
+
+**Request Body**
+```json
+{ "password": "********" }
+```
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `password` | string | 환경변수 `ADMIN_PASSWORD`와 일치해야 함 |
+
+**Response 200**
+```json
+{ "message": "로그인 되었습니다." }
+```
+
+**에러**
+| status | message | 조건 |
+|--------|---------|------|
+| 401 | `"비밀번호가 올바르지 않습니다."` | 미입력 또는 불일치 |
+
+---
+
+### 6-2. `GET /api/v1/admin/dashboard`
+전체 사용자 수 + 팀별 통계(인원/체크 장수/진도율/나무/점수) 조회.
+
+**Request**: 없음 (`admin_session` 쿠키)
+
+**Response 200**
+```json
+{
+  "total_users": 120,
+  "teams": [
+    {
+      "team_id": "uuid",
+      "team_name": "1팀",
+      "member_count": 12,
+      "chapters_checked": 340,
+      "progress_rate": 11,
+      "tree_count": 34,
+      "total_score": 34
+    }
+  ]
+}
+```
+| 필드 | 설명 |
+|------|------|
+| `total_users` | 전체 사용자 수 |
+| `chapters_checked` | 팀원들의 `bible_progress` 총 체크 수 |
+| `progress_rate` | `chapters_checked / (member_count × 260) × 100` 반올림 정수(%) |
+| `total_score` | 팀 나무 `points` 합계 |
+
+**에러**
+| status | message | 조건 |
+|--------|---------|------|
+| 403 | `"어드민 권한이 필요합니다."` | `admin_session` 쿠키 없음/불일치 |
+| 500 | `"데이터를 불러올 수 없습니다."` | 조회 실패 |
 
 ---
 
@@ -199,5 +404,12 @@
 | GET | `/api/v1/trees/inventory` | user | 미배치 나무 목록 |
 | POST | `/api/v1/trees/place` | user | 나무 배치(1회성) |
 | GET | `/api/v1/forests/:team_id` | user | 팀 숲 상세(요약+배치 나무) |
+| POST | `/api/v1/auth/register` | 공개 | 회원가입 + 세션 발급 |
+| POST | `/api/v1/auth/logout` | 공개 | 세션 쿠키 삭제 |
+| DELETE | `/api/v1/auth/withdraw` | user | 회원 탈퇴 |
+| GET | `/api/v1/users/me` | user | 본인 정보 + 점수 |
+| GET | `/api/v1/teams` | 공개 | 팀 목록/랭킹 |
+| POST | `/api/v1/admin/login` | 공개 | 어드민 로그인 |
+| GET | `/api/v1/admin/dashboard` | admin | 어드민 통계 |
 
-> 기존 구현(참고): `auth/register`, `auth/logout`, `auth/withdraw`, `users/me`, `teams`, `admin/login`, `admin/dashboard`.
+> **구현 상태**: §4~6 (`auth/*`, `users/me`, `teams`, `admin/*`) 7개는 **구현 완료**. §1~3 (Bible/Tree/Forest) 6개는 **구현 예정**.
