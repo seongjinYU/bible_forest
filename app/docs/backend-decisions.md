@@ -2,7 +2,7 @@
 
 > 대상 API: 성경읽기/달성(Bible·Progress), 나무/배치(Tree·Placement), 팀 숲 조회(Forest)
 > 작성 기준: `main` 브랜치 + `feat/auth,admin-api` 브랜치의 기존 구현 컨벤션
-> 관련 문서: [api-spec.md](./api-spec.md) · [db-schema.md](./db-schema.md) · [planning.md](./planning.md)
+> 관련 문서: [api-spec.md](./api-spec.md) · [api-spec.md](./api-spec.md) · [planning.md](./planning.md)
 
 ---
 
@@ -90,7 +90,7 @@ PATCH /api/v1/bible/progress
 6. 총 260장 달성 & 미수령이면 special 나무 지급 + `users.special_tree_earned=true`
 7. 위 3~6을 **하나의 트랜잭션**으로 커밋 (실패 시 전체 롤백)
 
-> 구현은 **Postgres 함수(RPC)** 로 원자성 보장 권장 → [db-schema.md](./db-schema.md)의 `check_chapter()` 참고.
+> 구현은 **Postgres 함수(RPC)** 로 원자성 보장 권장 → [api-spec.md](./api-spec.md)의 `check_chapter()` 참고.
 > 앱 레벨 다단계 쓰기는 중간 실패 시 정합성이 깨지므로 지양.
 
 **보너스 점수(A5)**: special 나무의 `points` 값은 **추후 확정**. 그전까지 상수 `REWARD.SPECIAL_TREE_POINTS = TBD`(임시값)로 두고 한 곳에서만 관리.
@@ -102,7 +102,7 @@ PATCH /api/v1/bible/progress
 전제: 여러 나무 에셋 존재. 지급 시점에 **서버가 종류를 결정**하고 `trees.species`(text 키)에 저장. FE는 `species` 키로 에셋을 매핑해 렌더.
 
 - **방식: ① 균등 랜덤** — 에셋 목록에서 동일 확률로 1개 선택. (가중치/덱 방식은 미채택)
-- 구현: `db-schema.md`의 `pick_random_species()` 가 균등 랜덤으로 1개 반환.
+- 구현: `api-spec.md`의 `pick_random_species()` 가 균등 랜덤으로 1개 반환.
 
 **공통 구현 포인트**
 - 에셋 종류 목록은 **단일 소스**로 관리: `app/src/constants/trees.ts`에 `TREE_SPECIES` 배열 정의 (목록 확정은 미정 — API 제작엔 불필요, 임시 키로 진행 가능).
@@ -131,7 +131,7 @@ PATCH /api/v1/bible/progress
 ### C1. 챌린지 기간 제약
 - **읽기 체크(PATCH /bible/progress)에만 적용.** 활성 챌린지의 `start_date ~ end_date` 밖이면 거부.
 - 나무 배치/조회/인벤토리/팀 숲 조회는 기간 제약 **없음**.
-- 활성 챌린지 정보는 `challenges` 테이블(`is_active=true`)에서 조회 → [db-schema.md](./db-schema.md).
+- 활성 챌린지 정보는 `challenges` 테이블(`is_active=true`)에서 조회 → [api-spec.md](./api-spec.md).
 
 ### C2. 인증 기준
 - 모든 사용자 API는 쿠키 `user_id` 기반 [getSessionUser()](../src/lib/auth.ts) 필수. 없으면 `401 {message}`.

@@ -1,8 +1,9 @@
-# API 정의서 (v1) — Bible / Tree / Forest / Auth / Admin
+# API 정의서 + DB 스키마 (v1) — Bible / Tree / Forest / Auth / Admin
 
-> 관련: [backend-decisions.md](./backend-decisions.md) · [db-schema.md](./db-schema.md)
+> 관련: [backend-decisions.md](./backend-decisions.md) · [db-migration-request.md](./db-migration-request.md)
 > 공통 규칙은 backend-decisions 4장(코드 컨벤션) 참고. 모든 응답은 **snake_case**.
-> Base URL: `/api/v1`
+> Base URL: `/api/v1` · **DB 스키마는 본 문서 §7 참고**
+> 아키텍처: Supabase는 **DB(테이블)로만** 사용, 비즈니스 로직(나무 지급 등)은 **백엔드(Next.js route)** 에서 처리.
 
 ## 공통 규약
 
@@ -43,48 +44,60 @@
 
 ---
 
-### 1-2. `PATCH /api/v1/bible/progress`
-특정 장 읽기 완료/취소. **나무 지급 판단·지급까지 단일 트랜잭션으로 처리**(A3).
+### 1-2. `PATCH /api/v1/bible/progress` — 여러 장 한 번에(배치)
+여러 장을 한 번에 읽기 완료/취소 + 나무 지급. (로직은 백엔드에서 처리)
 
-**Request Body**
+**Request Body (배치)**
 ```json
-{ "book_name": "마태복음", "chapter": 10, "checked": true }
+{
+  "checked": true,
+  "chapters": [
+    { "book_name": "마태복음", "chapter": 1 },
+    { "book_name": "마태복음", "chapter": 2 },
+    { "book_name": "마가복음", "chapter": 1 }
+  ]
+}
 ```
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `book_name` | string | 신약 책 이름 (`NT_BOOKS` 중 하나) |
-| `chapter` | int | 1 ~ 해당 책의 최대 장수 |
-| `checked` | boolean | `true`=완료, `false`=취소 |
+| `checked` | boolean | `true`=완료 / `false`=취소 (배치 전체에 적용) |
+| `chapters` | array | `{ book_name, chapter }` 목록 (여러 책 혼합 가능) |
+| `chapters[].book_name` | string | 신약 책 이름 (`NT_BOOKS` 중 하나) |
+| `chapters[].chapter` | int | 1 ~ 해당 책의 최대 장수 |
 
-**처리 (BE, 트랜잭션)** — [db-schema.md](./db-schema.md) `check_chapter()` RPC
+> 하위호환: 단건 `{ "book_name": "마태복음", "chapter": 1, "checked": true }` 도 허용(내부에서 길이 1 배열로 처리).
+
+**처리 (BE)**
 1. 활성 챌린지 기간 검증 (C1) → 기간 밖이면 `403`
-2. `book_name`/`chapter` 유효성 → 불일치 시 `400`
-3. `checked`에 따라 `bible_progress` insert(중복은 무시) / delete
+2. 각 항목 `book_name`/`chapter` 유효성 → 불일치 시 `400`
+3. `checked`에 따라 `bible_progress` upsert(중복 무시) / delete
 4. 총 장수 재계산
-5. A1 규칙(단조 증가)으로 일반 나무 지급
+5. A1 규칙(단조 증가, `floor(총장수/10)`)으로 일반 나무를 **한 번에** 지급
 6. 260장 달성 & 미수령이면 special 나무 지급
 
 **Response 200**
 ```json
 {
-  "total_chapters": 10,
+  "total_chapters": 20,
   "total_nt_chapters": 260,
-  "trees_earned": 1,
+  "trees_earned": 2,
   "next_tree_remaining": 10,
   "completed_one_bible": false,
   "special_tree_earned": false,
+  "special_tree_newly_earned": false,
   "newly_earned": [
-    { "tree_id": "uuid", "tree_type": "normal", "species": "pine", "points": 1 }
+    { "tree_id": "uuid", "tree_type": "normal", "species": "birch", "points": 1 }
   ]
 }
 ```
-- `newly_earned`: 이번 요청으로 새로 획득한 나무(없으면 `[]`). FE 획득 팝업에 사용.
+- `newly_earned`: 이번 요청으로 새로 획득한 나무(없으면 `[]`). 배치로 여러 그루가 한 번에 들어올 수 있음.
 - 취소로 장수가 줄어도 `trees_earned`는 감소하지 않음(A1).
 
 **에러**
 | status | message 예시 | 조건 |
 |--------|-------------|------|
 | 400 | `"올바르지 않은 책 또는 장입니다."` | 책/장 범위 오류 |
+| 400 | `"체크할 장이 없습니다."` | `chapters` 빈 배열/누락 |
 | 401 | `"로그인이 필요합니다."` | 미로그인 |
 | 403 | `"챌린지 기간이 아닙니다."` | 기간 밖 |
 
@@ -269,7 +282,7 @@
 | 401 | `"로그인이 필요합니다."` | 미로그인 |
 | 500 | `"탈퇴에 실패했습니다."` | DB delete 실패 |
 
-> ⚠️ 현재 `users` 삭제만 수행. 연관 `bible_progress`/`trees`의 정리는 DB 제약(FK cascade, [db-schema.md](./db-schema.md))에 따름.
+> ⚠️ 현재 `users` 삭제만 수행. 연관 `bible_progress`/`trees`의 정리는 DB 제약(FK cascade, §7)에 따름.
 
 ---
 
@@ -412,4 +425,154 @@
 | POST | `/api/v1/admin/login` | 공개 | 어드민 로그인 |
 | GET | `/api/v1/admin/dashboard` | admin | 어드민 통계 |
 
-> **구현 상태**: §4~6 (`auth/*`, `users/me`, `teams`, `admin/*`) 7개는 **구현 완료**. §1~3 (Bible/Tree/Forest) 6개는 **구현 예정**.
+> **구현 상태**: §1~6 전체 **구현 완료**. (Bible/Tree/Forest는 배치 PATCH · DB-전용 백엔드 처리 기준)
+
+---
+
+## 7. DB 스키마 (Supabase / Postgres)
+
+> 방침: Supabase는 **DB(테이블)로만** 사용. 나무 지급 등 로직은 백엔드(route)에서 처리하므로 **DB 함수(RPC)는 두지 않는다.**
+> 운영 DB 적용(스키마 변경)은 [db-migration-request.md](./db-migration-request.md) 참고.
+
+### 7-1. ERD 개요
+```
+teams (1) ──< users (1) ──< bible_progress
+                  │
+                  └──< trees >── (team_id 비정규화)
+
+challenges (활성 1개) ── 읽기 체크 기간 제약에만 사용
+```
+
+### 7-2. 테이블 정의
+
+**`teams`**
+| 컬럼 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | uuid | PK, default `gen_random_uuid()` | |
+| name | text | not null | 팀명 (예: "1팀") |
+| created_at | timestamptz | default `now()` | |
+
+**`users`**
+| 컬럼 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | uuid | PK, default `gen_random_uuid()` | 세션 쿠키 `user_id` |
+| nickname | text | not null | 이름(동명이인 허용) |
+| team_id | uuid | FK→teams.id, not null | |
+| is_admin | boolean | default false | |
+| trees_earned | int | not null default 0 | **총 보유 나무 수(단조 증가, A1)** |
+| special_tree_earned | boolean | not null default false | 1독 특별 나무 수령 여부 |
+| created_at | timestamptz | default `now()` | |
+
+**`bible_progress`** — 체크된 장 = 행 1개(존재=체크). 해제 시 행 삭제.
+| 컬럼 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | uuid | PK, default `gen_random_uuid()` | |
+| user_id | uuid | FK→users.id, not null | |
+| book_name | text | not null | 신약 책명 (`NT_BOOKS` 기준) |
+| chapter | int | not null | 장 번호 |
+| checked_at | timestamptz | default `now()` | |
+| | | **UNIQUE(user_id, book_name, chapter)** | 중복 방지 — 백엔드 upsert(멱등성)가 의존 |
+
+인덱스: `idx_bible_progress_user (user_id)`
+
+**`trees`** — 획득한 나무 = 행. 미배치/배치를 `is_planted`로 구분.
+| 컬럼 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | uuid | PK, default `gen_random_uuid()` | 요청의 `tree_id` |
+| user_id | uuid | FK→users.id, not null | 소유자 |
+| team_id | uuid | FK→teams.id, not null | 팀 숲 조회 비정규화 |
+| tree_type | text | not null, check in ('normal','special') | |
+| species | text | not null | 에셋 종류 키(A4, 백엔드에서 랜덤 결정 후 영구 저장) |
+| points | int | not null default 1 | 랭킹 합산 점수(B4) |
+| is_planted | boolean | not null default false | false=인벤토리, true=배치됨 |
+| x | numeric(5,2) | null | 가로 % 0~100 (B1) |
+| y | numeric(5,2) | null | 세로 % 0~100 (B1) |
+| obtained_at | timestamptz | default `now()` | 획득 시각 |
+| planted_at | timestamptz | null | 배치 시각 |
+
+인덱스: `idx_trees_user (user_id)`, `idx_trees_team_planted (team_id, is_planted)`
+
+**`challenges`** — 읽기 체크 기간 제약(C1)용. **활성 챌린지는 항상 1개** 전제.
+| 컬럼 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | uuid | PK, default `gen_random_uuid()` | |
+| name | text | not null | 챌린지명 |
+| start_date | date | not null | 시작일 |
+| end_date | date | not null | 종료일 |
+| is_active | boolean | not null default false | 진행중 여부(어드민 토글) |
+| created_at | timestamptz | default `now()` | |
+
+### 7-3. DDL (Supabase SQL) — 테이블/인덱스만 (RPC 없음)
+```sql
+create table if not exists teams (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,
+  created_at  timestamptz default now()
+);
+
+create table if not exists users (
+  id                  uuid primary key default gen_random_uuid(),
+  nickname            text not null,
+  team_id             uuid not null references teams(id),
+  is_admin            boolean not null default false,
+  trees_earned        int  not null default 0,
+  special_tree_earned boolean not null default false,
+  created_at          timestamptz default now()
+);
+
+create table if not exists bible_progress (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references users(id) on delete cascade,
+  book_name   text not null,
+  chapter     int  not null,
+  checked_at  timestamptz default now()
+);
+create unique index if not exists uq_bible_progress
+  on bible_progress(user_id, book_name, chapter);
+create index if not exists idx_bible_progress_user on bible_progress(user_id);
+
+create table if not exists trees (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references users(id) on delete cascade,
+  team_id      uuid not null references teams(id),
+  tree_type    text not null check (tree_type in ('normal','special')),
+  species      text not null,
+  points       int  not null default 1,
+  is_planted   boolean not null default false,
+  x            numeric(5,2),
+  y            numeric(5,2),
+  obtained_at  timestamptz default now(),
+  planted_at   timestamptz,
+  constraint chk_xy check (
+    (is_planted = false) or
+    (x between 0 and 100 and y between 0 and 100)
+  )
+);
+create index if not exists idx_trees_user on trees(user_id);
+create index if not exists idx_trees_team_planted on trees(team_id, is_planted);
+
+create table if not exists challenges (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,
+  start_date  date not null,
+  end_date    date not null,
+  is_active   boolean not null default false,
+  created_at  timestamptz default now()
+);
+```
+> 전체 셋업 SQL: [sql/full-setup.sql](./sql/full-setup.sql) · 기존 DB 마이그레이션: [db-migration-request.md](./db-migration-request.md)
+
+### 7-4. 챌린지 기간 검증 (C1) — 백엔드에서 수행
+```sql
+select 1 from challenges
+where is_active = true
+  and current_date between start_date and end_date
+limit 1;
+-- 결과 없으면 → API 403 "챌린지 기간이 아닙니다."
+```
+- `PATCH /bible/progress`(읽기 체크)에만 적용. 배치/조회/인벤토리/팀숲 API에는 미적용.
+
+### 7-5. RLS 참고
+- 서버는 `SUPABASE_SERVICE_ROLE_KEY`로 접근하여 **RLS를 우회**함 (`src/lib/supabase.ts`).
+- 따라서 행 단위 권한(본인 나무만 배치 등)은 **백엔드 코드에서 직접 검증**(세션 user_id ↔ 리소스 user_id 비교).
+- 클라이언트가 직접 Supabase에 붙지 않는 구조이므로 RLS는 보조 안전망 수준.

@@ -3,7 +3,7 @@
 > 요청자: BER-ryul · 대상: DB/Supabase 담당
 > 목적: 새로 구현한 **성경읽기·나무·팀숲 API**(api-spec 1-1~3-1)가 동작하려면 현재 DB에 아래 변경이 필요합니다.
 > 방침: **Supabase는 DB(테이블)로만 사용**합니다. 나무 지급 등 로직은 **백엔드(Next.js route)** 에서 처리하므로, DB 함수(RPC)는 요청하지 않습니다. (스키마 변경만 필요)
-> 관련 문서: [db-schema.md](./db-schema.md) · [api-spec.md](./api-spec.md) · [backend-decisions.md](./backend-decisions.md)
+> 관련 문서: [api-spec.md](./api-spec.md) (§7 DB 스키마) · [backend-decisions.md](./backend-decisions.md)
 
 ---
 
