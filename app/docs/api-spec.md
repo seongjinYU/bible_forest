@@ -502,7 +502,8 @@ challenges (활성 1개) ── 읽기 체크 기간 제약에만 사용
 | is_active | boolean | not null default false | 진행중 여부(어드민 토글) |
 | created_at | timestamptz | default `now()` | |
 
-### 7-3. DDL (Supabase SQL) — 테이블/인덱스만 (RPC 없음)
+### 7-3. 셋업 SQL (Supabase) — 테이블·인덱스 (RPC 없음)
+> 아래 DDL을 Supabase **SQL Editor**에 붙여넣어 실행하면 셋업 완료. (기존 운영 DB 변경은 [db-migration-request.md](./db-migration-request.md) 참고)
 ```sql
 create table if not exists teams (
   id          uuid primary key default gen_random_uuid(),
@@ -560,7 +561,22 @@ create table if not exists challenges (
   created_at  timestamptz default now()
 );
 ```
-> 전체 셋업 SQL: [sql/full-setup.sql](./sql/full-setup.sql) · 기존 DB 마이그레이션: [db-migration-request.md](./db-migration-request.md)
+**테스트 시드 (선택)** — 로컬 테스트용 고정 UUID 데이터. ⚠️ **운영 DB에는 넣지 말 것.**
+```sql
+insert into teams (id, name)
+values ('22222222-2222-2222-2222-222222222222', '1팀')
+on conflict (id) do nothing;
+
+insert into users (id, nickname, team_id)
+values ('11111111-1111-1111-1111-111111111111', '테스트유저',
+        '22222222-2222-2222-2222-222222222222')
+on conflict (id) do nothing;
+
+-- 오늘 날짜가 포함된 활성 챌린지 (읽기 체크 기간 검증 통과용)
+insert into challenges (name, start_date, end_date, is_active)
+values ('2026 신약 1독 챌린지', '2026-06-01', '2026-08-31', true)
+on conflict do nothing;
+```
 
 ### 7-4. 챌린지 기간 검증 (C1) — 백엔드에서 수행
 ```sql
