@@ -22,7 +22,7 @@ export default function ApiTestPage() {
   const [teamId, setTeamId] = useState("");
 
   // bible 배치 입력
-  const [book, setBook] = useState(NT_BOOKS[0].name);
+  const [book, setBook] = useState<string>(NT_BOOKS[0].name);
   const [chapter, setChapter] = useState(1);
   const [rangeTo, setRangeTo] = useState(10);
   const [checked, setChecked] = useState(true);
