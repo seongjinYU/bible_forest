@@ -15,9 +15,12 @@
 | 2 | `trees` 컬럼 | `species` text **추가** | A4 (나무 종류 저장) |
 | 3 | `trees` 컬럼 | `x`, `y` 타입 `numeric(5,2)`로 고정 | B1 |
 | 4 | `bible_progress` | UNIQUE(user_id, book_name, chapter) **인덱스 추가** | 멱등성(백엔드 upsert가 의존) |
-| 5 | `challenges` | 테이블 **신설** | C1 (읽기 기간 제약) |
+| 5 | `challenges` | 테이블 **신설(없을 경우)** | C1 (읽기 기간 제약) |
+| 6 | `challenges` 컬럼 | `is_active` boolean **추가** | C1 백엔드 검증이 의존 (**2026-06-17 운영 적용 완료**) |
 
 > ⚠️ **데이터 의미 주의(1번)**: 기존 `x_ratio/y_ratio`가 **0~1 비율**이었다면, 새 `x/y`는 **0~100 퍼센트(%)** 입니다. 이미 배치된 데이터가 있으면 `값 * 100` 변환이 필요합니다. (테스트 단계로 실데이터가 없으면 무시 가능)
+
+> ⚠️ **데이터 의미 주의(6번)**: 운영 `challenges`는 초기에 `is_active` 없이 `created_by` 컬럼만 있는 형태로 생성되어 있었음. `create table if not exists`는 기존 테이블의 컬럼을 추가하지 않으므로, 아래 **5-1) ALTER**로 `is_active`를 별도 보강해야 함. (보강 없으면 `PATCH /bible/progress`가 항상 403)
 
 ---
 
@@ -48,15 +51,21 @@ alter table trees alter column y type numeric(5,2) using y::numeric(5,2);
 create unique index if not exists uq_bible_progress
   on bible_progress(user_id, book_name, chapter);
 
--- 5) challenges: 신설
+-- 5) challenges: 신설 (없을 때만 생성)
 create table if not exists challenges (
   id          uuid primary key default gen_random_uuid(),
   name        text not null,
   start_date  date not null,
   end_date    date not null,
   is_active   boolean not null default false,
+  created_by  uuid,
   created_at  timestamptz default now()
 );
+
+-- 5-1) challenges: is_active 보강 (★필수)
+-- 운영 DB에 challenges가 is_active 없이(created_by만) 이미 존재했으므로,
+-- create table if not exists로는 컬럼이 안 생긴다. 아래로 명시 보강.
+alter table challenges add column if not exists is_active boolean not null default false;
 ```
 
 > 💡 나무 지급/체크 로직은 **백엔드 코드**(`src/app/api/v1/bible/progress/route.ts`)에서 처리합니다. DB 함수(`check_chapter` 등)는 필요 없습니다.
@@ -93,6 +102,7 @@ export interface Challenge {
   start_date: string
   end_date: string
   is_active: boolean
+  created_by: string | null
   created_at: string
 }
 ```
@@ -112,8 +122,9 @@ values ('2026 신약 1독 챌린지', '2026-06-01', '2026-08-31', true);
 
 ## 4. 검증 체크리스트 (적용 후)
 
-- [ ] `trees`에 `x`, `y`, `species` 컬럼 존재
-- [ ] `bible_progress`에 UNIQUE(user_id, book_name, chapter) 존재
-- [ ] `challenges` 테이블 + 활성 1건 존재
-- [ ] `GET /api/v1/forests/:team_id` 정상 200
-- [ ] `PATCH /api/v1/bible/progress` 배치 호출 시 나무 정상 지급
+- [x] `trees`에 `x`, `y`, `species` 컬럼 존재 — 2026-06-17 검증
+- [x] `bible_progress`에 UNIQUE(user_id, book_name, chapter) 존재 — 2026-06-17 검증
+- [x] `challenges` 테이블에 **`is_active` 컬럼 존재** — 2026-06-17 보강·검증 (#6)
+- [ ] `challenges` 활성 1건 존재 (운영용 — `is_active=true` 챌린지 등록 필요)
+- [x] `GET /api/v1/forests/:team_id` 정상 200 — 2026-06-17 검증
+- [x] `PATCH /api/v1/bible/progress` 배치 호출 시 나무 정상 지급 — 2026-06-17 검증

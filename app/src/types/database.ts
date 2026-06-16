@@ -34,3 +34,13 @@ export interface Tree {
   obtained_at: string
   planted_at: string | null
 }
+
+export interface Challenge {
+  id: string
+  name: string
+  start_date: string
+  end_date: string
+  is_active: boolean
+  created_by: string | null
+  created_at: string
+}

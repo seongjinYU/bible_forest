@@ -499,8 +499,11 @@ challenges (활성 1개) ── 읽기 체크 기간 제약에만 사용
 | name | text | not null | 챌린지명 |
 | start_date | date | not null | 시작일 |
 | end_date | date | not null | 종료일 |
-| is_active | boolean | not null default false | 진행중 여부(어드민 토글) |
+| is_active | boolean | not null default false | 진행중 여부(어드민 토글). 백엔드 C1 검증이 이 컬럼에 의존 |
+| created_by | uuid | null | 챌린지 생성 어드민(앱 로직 미사용) |
 | created_at | timestamptz | default `now()` | |
+
+> ⚠️ **운영 DB 주의**: 운영 `challenges`는 초기에 `is_active` 없이 `created_by`만 있는 형태로 생성되어 있었음. `is_active`는 마이그레이션으로 보강(2026-06-17 적용) — [db-migration-request.md](./db-migration-request.md) #6 참고. 신규 환경 셋업 시 §7-3 DDL이 두 컬럼을 모두 포함.
 
 ### 7-3. 셋업 SQL (Supabase) — 테이블·인덱스 (RPC 없음)
 > 아래 DDL을 Supabase **SQL Editor**에 붙여넣어 실행하면 셋업 완료. (기존 운영 DB 변경은 [db-migration-request.md](./db-migration-request.md) 참고)
@@ -558,8 +561,13 @@ create table if not exists challenges (
   start_date  date not null,
   end_date    date not null,
   is_active   boolean not null default false,
+  created_by  uuid,
   created_at  timestamptz default now()
 );
+
+-- 기존 운영 DB에 challenges가 is_active 없이 존재하던 경우 보강
+-- (create table if not exists는 기존 테이블의 컬럼을 추가하지 않으므로 필수)
+alter table challenges add column if not exists is_active boolean not null default false;
 ```
 **테스트 시드 (선택)** — 로컬 테스트용 고정 UUID 데이터. ⚠️ **운영 DB에는 넣지 말 것.**
 ```sql
