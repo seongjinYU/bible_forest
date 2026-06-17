@@ -107,11 +107,6 @@ export default function ReadingPage() {
     });
   }
 
-  function reset() {
-    setSelected(new Set());
-    setErrorMsg("");
-  }
-
   // 완료 버튼 → 확인 팝업만 열기
   function handleComplete() {
     if (selected.size === 0) return;
@@ -145,7 +140,7 @@ export default function ReadingPage() {
     if (data.newly_earned?.length > 0) {
       setShowEarned(true);
     } else {
-      router.back();
+      router.push("/");
     }
   }
 
@@ -161,13 +156,6 @@ export default function ReadingPage() {
       {/* AppBar */}
       <div className="h-[54px] flex items-center justify-center relative px-4 shrink-0">
         <span className="text-[17px] font-medium text-[#222222] font-noto">인증하기</span>
-        <button
-          onClick={() => router.back()}
-          className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center"
-          aria-label="닫기"
-        >
-          <X size={20} className="text-[#222222]" />
-        </button>
       </div>
 
       {/* Book Selector */}
@@ -302,10 +290,10 @@ export default function ReadingPage() {
       {/* Bottom Buttons */}
       <div className="px-5 pb-safe pt-3 flex gap-3 shrink-0">
         <button
-          onClick={reset}
+          onClick={() => router.push("/")}
           className="w-[88px] h-[54px] rounded-[8px] bg-[#F5F5F5] text-[#666666] text-[17px] font-medium font-noto shrink-0"
         >
-          초기화
+          이전
         </button>
         <button
           onClick={handleComplete}
@@ -364,7 +352,7 @@ export default function ReadingPage() {
         <DialogContent showCloseButton={false} className="p-0 gap-0 rounded-[12px]">
           <div className="flex items-center justify-end px-4 pt-4">
             <button
-              onClick={() => { setShowEarned(false); router.back(); }}
+              onClick={() => { setShowEarned(false); router.push("/"); }}
               className="w-10 h-10 flex items-center justify-center"
             >
               <X size={20} className="text-[#222222]" />
@@ -386,7 +374,7 @@ export default function ReadingPage() {
             </div>
 
             <button
-              onClick={() => { setShowEarned(false); router.back(); }}
+              onClick={() => { setShowEarned(false); router.push("/"); }}
               className="w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto"
             >
               확인

@@ -9,19 +9,20 @@ export default async function Home() {
 
   const supabase = createSupabaseServerClient();
 
-  const [teamRes, treesRes, memberRes] = await Promise.all([
+  const [teamRes, usersRes] = await Promise.all([
     supabase.from("teams").select("name").eq("id", user.team_id).single(),
-    supabase.from("trees").select("points").eq("team_id", user.team_id),
-    supabase.from("users").select("*", { count: "exact", head: true }).eq("team_id", user.team_id),
+    supabase.from("users").select("trees(points), bible_progress(count)").eq("team_id", user.team_id),
   ]);
 
   const teamData = teamRes.data as { name: string } | null;
 
-  const trees = treesRes.data ?? [];
+  type UserRow = { trees: { points: number }[]; bible_progress: { count: number }[] };
+  const usersData = (usersRes.data ?? []) as UserRow[];
+
   const stats = {
-    trees: trees.length,
-    score: trees.reduce((sum, t) => sum + ((t as { points?: number }).points ?? 0), 0),
-    participants: memberRes.count ?? 0,
+    trees: usersData.flatMap((u) => u.trees).length,
+    score: usersData.reduce((sum, u) => sum + (u.bible_progress[0]?.count ?? 0), 0),
+    participants: usersData.length,
   };
 
   return (

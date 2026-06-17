@@ -5,6 +5,7 @@
 // └─────────────────────────────────────────────────────────────────┘
 
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getSessionUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { NT_BOOKS, TOTAL_NT_CHAPTERS } from "@/constants/bible";
@@ -226,7 +227,9 @@ export async function PATCH(request: Request) {
     specialNew = true;
   }
 
-  // 10) 응답 (서버 계산값 그대로 — A2)
+  // 10) 홈 페이지 캐시 무효화 (점수/나무 수 즉시 반영)
+  revalidatePath("/");
+
   return NextResponse.json({
     total_chapters: total,
     total_nt_chapters: TOTAL_NT_CHAPTERS,

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Download, AlertCircle, X } from "lucide-react";
+import { Download, AlertCircle } from "lucide-react";
 import { toBlob } from "html-to-image";
 import { THEMES } from "@/constants/themes";
 import { useTheme } from "@/context/ThemeContext";
@@ -138,6 +138,7 @@ export default function MainScreen({ name, team, stats }: MainScreenProps) {
   const [helpOpen, setHelpOpen] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
   const screenRef = useRef<HTMLDivElement>(null);
+  const contentLayerRef = useRef<HTMLDivElement>(null);
   const capturedBlobRef = useRef<Blob | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -169,11 +170,17 @@ export default function MainScreen({ name, team, stats }: MainScreenProps) {
   }
 
   async function handleDownload() {
-    if (!screenRef.current) return;
+    if (!screenRef.current || !contentLayerRef.current) return;
+    const layer = contentLayerRef.current;
     try {
+      setToast(null);
+      layer.style.visibility = "hidden";
+      // 브라우저가 실제로 페인트하고 난 뒤 캡처
+      await new Promise<void>((res) => requestAnimationFrame(() => requestAnimationFrame(() => res())));
       const blob = await toBlob(screenRef.current, {
         pixelRatio: window.devicePixelRatio || 2,
       });
+      layer.style.visibility = "visible";
       if (!blob) return;
       capturedBlobRef.current = blob;
       const url = URL.createObjectURL(blob);
@@ -184,152 +191,124 @@ export default function MainScreen({ name, team, stats }: MainScreenProps) {
       URL.revokeObjectURL(url);
       showToast("이미지가 저장되었습니다!", { label: "공유", onClick: handleShare });
     } catch {
+      layer.style.visibility = "visible";
       showToast("이미지 저장에 실패했습니다.");
     }
   }
 
+  const textPrimary = isStarTheme ? "text-white" : "text-[#222222]";
+  const textSecondary = isStarTheme ? "text-white/70" : "text-[#999999]";
+  const textMuted = isStarTheme ? "text-white/80" : "text-[#555555]";
+  const isMusicTheme = theme === "music";
+
   return (
-    <div
-      ref={screenRef}
-      className="flex flex-col min-h-dvh"
-      style={{ background: currentTheme.pageBackground }}
-    >
-      {/* 상태바 */}
-      <div className="h-11" />
-
-      {/* AppBar */}
-      <div className="h-[60px] flex items-center justify-between px-4">
-        <div className="w-10 h-10" />
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleDownload}
-            className="w-[26px] h-[26px] flex items-center justify-center"
-            aria-label="이미지 저장"
-          >
-            <Download size={22} className={isStarTheme ? "text-white" : "text-[#222222]"} />
-          </button>
-          <button
-            onClick={() => setHelpOpen(true)}
-            className="w-[26px] h-[26px] flex items-center justify-center"
-            aria-label="도움말"
-          >
-            <AlertCircle size={22} className={isStarTheme ? "text-white" : "text-[#222222]"} />
-          </button>
-        </div>
-      </div>
-
-      {/* 유저 정보 */}
-      <div className="px-6 pt-2 pb-2 flex items-start justify-between">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-baseline gap-1.5">
-            <span className={`text-[24px] font-bold leading-none font-pretendard ${isStarTheme ? "text-white" : "text-[#222222]"}`}>
-              {name}
-            </span>
-            <span className={`text-[16px] font-pretendard ${isStarTheme ? "text-white/70" : "text-[#999999]"}`}>
-              {team}
-            </span>
-          </div>
-          <p className={`text-[16px] font-pretendard ${isStarTheme ? "text-white/80" : "text-[#222222]"}`}>
-            팀 영혼들과 함께 나무를 심어보세요!
-          </p>
-        </div>
-        <button
-          onClick={() => router.push("/reading")}
-          className={`shrink-0 h-[34px] px-[14px] rounded-[20px] border text-[14px] font-pretendard ${
-            isStarTheme
-              ? "border-white text-white"
-              : "border-[#222222] text-[#222222]"
-          }`}
-        >
-          내 기록 보기
-        </button>
-      </div>
-
-      {/* 숲 영역 (일러스트 + 통계 오버레이) */}
-      <div className="flex-1 relative overflow-hidden min-h-[360px]">
+    <div ref={screenRef} className="relative min-h-dvh overflow-hidden">
+      {/* 전체화면 일러스트 배경 */}
+      <div className="absolute inset-0">
         {theme === "tree"  && <TreeIllustration />}
         {theme === "star"  && <StarIllustration />}
-        {/* music: 배경 없음 */}
+        {isMusicTheme && <div className="absolute inset-0 bg-white" />}
+      </div>
 
-        {/* 인증 말풍선 */}
-        <button
-          onClick={() => router.push("/reading")}
-          className="absolute left-1/2 -translate-x-1/2 bottom-[148px] flex items-center gap-1.5 px-4 h-[45px] bg-[#222222] rounded-full text-white text-[13px] font-pretendard whitespace-nowrap z-10"
-        >
-          <span>🦉</span>
-          <span>
-            <span className="font-semibold">클릭</span>해서{" "}
-            <span className="font-semibold">인증</span>해보세요!
-          </span>
-        </button>
+      {/* 콘텐츠 레이어 */}
+      <div ref={contentLayerRef} className="relative z-10 flex flex-col min-h-dvh">
+        {/* 상태바 */}
+        <div className="h-11" />
 
-        {/* 재생 버튼 */}
-        <button
-          className="absolute bottom-[110px] left-6 w-6 h-6 rounded-full bg-[#FFAE00] flex items-center justify-center z-10"
-          aria-label="재생"
-        >
-          <div className="w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[9px] border-l-white ml-0.5" />
-        </button>
-
-        {/* 통계 — 잔디/배경 위 오버레이 */}
-        <div className="absolute bottom-0 left-0 right-0 z-10 px-6 pb-5">
-          <p className={`text-[15px] font-pretendard mb-0.5 ${theme === "music" ? "text-[#555555]" : "text-white/80"}`}>
-            현재 우리 숲은?
-          </p>
-          <div className="flex items-center gap-[3px] mb-1">
-            <span className={`text-[24px] font-semibold font-pretendard ${theme === "music" ? "text-[#222222]" : "text-white"}`}>
-              {stats.trees}
-            </span>
-            <span className={`text-[24px] font-pretendard ${theme === "music" ? "text-[#222222]" : "text-white"}`}>그루</span>
-            <div className={`w-1 h-1 rounded-full mx-[5px] ${theme === "music" ? "bg-[#2E9200]" : "bg-white/60"}`} />
-            <span className={`text-[24px] font-semibold font-pretendard ${theme === "music" ? "text-[#222222]" : "text-white"}`}>
-              {stats.score}
-            </span>
-            <span className={`text-[24px] font-pretendard ${theme === "music" ? "text-[#222222]" : "text-white"}`}>점</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              <span className={`text-[18px] font-pretendard ${theme === "music" ? "text-[#555555]" : "text-white/80"}`}>참여중</span>
-              <span className={`text-[18px] font-semibold font-pretendard ${theme === "music" ? "text-[#222222]" : "text-white"}`}>
-                {stats.participants}
-              </span>
-              <span className={`text-[18px] font-pretendard ${theme === "music" ? "text-[#555555]" : "text-white/80"}`}>명</span>
-            </div>
-            <button className="w-[76px] h-[34px] rounded-[20px] bg-[#2E9200] text-white text-[14px] font-pretendard">
-              초대하기
+        {/* AppBar */}
+        <div className="h-[60px] flex items-center justify-between px-4">
+          <div className="w-10 h-10" />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleDownload}
+              className="w-[26px] h-[26px] flex items-center justify-center"
+              aria-label="이미지 저장"
+            >
+              <Download size={22} className={textPrimary} />
+            </button>
+            <button
+              onClick={() => setHelpOpen(true)}
+              className="w-[26px] h-[26px] flex items-center justify-center"
+              aria-label="도움말"
+            >
+              <AlertCircle size={22} className={textPrimary} />
             </button>
           </div>
         </div>
-      </div>
 
-      {/* 다른 숲 */}
-      <div className="px-6 pb-safe pt-3">
-        <button
-          onClick={() => router.push("/forests")}
-          className={`w-full h-[48px] rounded-[8px] text-[16px] font-pretendard ${
-            isStarTheme
-              ? "bg-white/15 text-white backdrop-blur-sm"
-              : "bg-white border border-[#DDDDDD] text-[#222222]"
-          }`}
-        >
-          다른 숲 구경하러 가기
-        </button>
+        {/* 유저 정보 */}
+        <div className="px-6 pt-2 pb-2 flex items-start justify-between">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-baseline gap-1.5">
+              <span className={`text-[24px] font-bold leading-none font-pretendard ${textPrimary}`}>
+                {name}
+              </span>
+              <span className={`text-[16px] font-pretendard ${textSecondary}`}>
+                {team}
+              </span>
+            </div>
+            <p className={`text-[16px] font-pretendard ${textMuted}`}>
+              팀 영혼들과 함께 나무를 심어보세요!
+            </p>
+          </div>
+          <button
+            onClick={() => router.push("/reading")}
+            className={`shrink-0 h-[34px] px-[14px] rounded-[20px] border text-[14px] font-pretendard ${
+              isStarTheme ? "border-white text-white" : "border-[#222222] text-[#222222]"
+            }`}
+          >
+            내 기록 보기
+          </button>
+        </div>
+
+        {/* 숲 인터랙션 영역 */}
+        <div className="flex-1 relative">
+          {/* 통계 오버레이 */}
+          <div className="absolute bottom-0 left-0 right-0 px-6 pb-5">
+            <p className={`text-[15px] font-pretendard mb-0.5 ${isMusicTheme ? "text-[#555555]" : "text-white/80"}`}>
+              현재 우리 숲은?
+            </p>
+            <div className="flex items-center gap-[3px] mb-1">
+              <span className={`text-[24px] font-semibold font-pretendard ${isMusicTheme ? "text-[#222222]" : "text-white"}`}>
+                {stats.trees}
+              </span>
+              <span className={`text-[24px] font-pretendard ${isMusicTheme ? "text-[#222222]" : "text-white"}`}>그루</span>
+              <div className={`w-1 h-1 rounded-full mx-[5px] ${isMusicTheme ? "bg-[#2E9200]" : "bg-white/60"}`} />
+              <span className={`text-[24px] font-semibold font-pretendard ${isMusicTheme ? "text-[#222222]" : "text-white"}`}>
+                {stats.score}
+              </span>
+              <span className={`text-[24px] font-pretendard ${isMusicTheme ? "text-[#222222]" : "text-white"}`}>점</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className={`text-[18px] font-pretendard ${isMusicTheme ? "text-[#555555]" : "text-white/80"}`}>참여중</span>
+              <span className={`text-[18px] font-semibold font-pretendard ${isMusicTheme ? "text-[#222222]" : "text-white"}`}>
+                {stats.participants}
+              </span>
+              <span className={`text-[18px] font-pretendard ${isMusicTheme ? "text-[#555555]" : "text-white/80"}`}>명</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 다른 숲 */}
+        <div className="px-6 pb-safe pt-3">
+          <button
+            onClick={() => router.push("/forests")}
+            className={`w-full h-[48px] rounded-[8px] text-[16px] font-pretendard ${
+              isStarTheme
+                ? "bg-white/15 text-white backdrop-blur-sm"
+                : "bg-white/80 backdrop-blur-sm border border-white/60 text-[#222222]"
+            }`}
+          >
+            다른 숲 구경하러 가기
+          </button>
+        </div>
       </div>
 
       {/* Popup_info */}
       {helpOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
           <div className="w-full max-w-[358px] bg-white rounded-[8px] overflow-hidden">
-            <div className="h-[50px] flex items-center justify-end px-4">
-              <button
-                onClick={() => setHelpOpen(false)}
-                className="w-10 h-10 flex items-center justify-center"
-                aria-label="닫기"
-              >
-                <X size={20} className="text-[#222222]" />
-              </button>
-            </div>
-            <div className="px-4 pb-9 flex flex-col gap-6">
+            <div className="px-4 pt-9 pb-6 flex flex-col gap-6">
               <div className="flex flex-col items-center gap-2">
                 <h2 className="text-[20px] font-medium leading-[28px] tracking-[-0.03em] text-[#222222] text-center font-noto">
                   성경읽기 인증하고 나무를 심어보세요!
@@ -360,7 +339,7 @@ export default function MainScreen({ name, team, stats }: MainScreenProps) {
             </div>
             <button
               onClick={() => setHelpOpen(false)}
-              className="w-full py-5 bg-[#31C678] text-white text-[20px] font-medium font-noto"
+              className="w-full py-3 bg-[#31C678] text-white text-[18px] font-medium font-noto"
             >
               확인
             </button>
