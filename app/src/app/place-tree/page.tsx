@@ -54,7 +54,7 @@ export default function PlaceTreePage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
+    <div className="flex flex-col min-h-dvh bg-white">
       <div className="h-11" />
 
       <AppBar

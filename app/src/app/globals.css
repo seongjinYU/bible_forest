@@ -151,4 +151,9 @@
 @layer utilities {
   .font-noto       { font-family: var(--font-noto); }
   .font-pretendard { font-family: var(--font-pretendard); }
+
+  /* 홈 인디케이터(iPhone X 이상) safe area 대응 */
+  .pb-safe {
+    padding-bottom: max(3.5rem, calc(env(safe-area-inset-bottom) + 2rem));
+  }
 }

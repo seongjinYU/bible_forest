@@ -1,17 +1,25 @@
-export type ThemeKey = "forest" | "night";
+export type ThemeKey = "tree" | "star" | "music";
 
-export const THEMES: Record<ThemeKey, { label: string; icon: string; gradient: string }> = {
-  forest: {
-    label: "숲",
-    icon: "🌲",
-    gradient: "linear-gradient(180deg, #FFFFFF 0%, #BCE5FF 86%)",
+export const THEMES: Record<ThemeKey, {
+  label: string;
+  icon: string;
+  pageBackground: string;
+}> = {
+  tree: {
+    label: "나무",
+    icon: "🌳",
+    pageBackground: "#FFFFFF",
   },
-  night: {
-    label: "밤하늘",
+  star: {
+    label: "별",
     icon: "⭐",
-    gradient: "linear-gradient(180deg, #1A0533 0%, #3B1F6B 86%)",
+    pageBackground: "linear-gradient(180deg, #2D0566 0%, #7B3FC8 100%)",
+  },
+  music: {
+    label: "음표",
+    icon: "🎵",
+    pageBackground: "#FFFFFF",
   },
 };
 
-export const THEME_ORDER: ThemeKey[] = ["forest", "night"];
 export const THEME_STORAGE_KEY = "main_theme";

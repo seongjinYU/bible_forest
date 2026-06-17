@@ -18,7 +18,7 @@ const STORAGE_KEY = "admin_teams";
 const DEFAULT_TEAMS: Team[] = TEAMS.map((name, i) => ({
   id: String(i + 1),
   name,
-  theme: "forest",
+  theme: "tree" as ThemeKey,
 }));
 
 export default function TeamsPage() {
@@ -38,7 +38,7 @@ export default function TeamsPage() {
   function addTeam(e: React.FormEvent) {
     e.preventDefault();
     if (!newName.trim()) return;
-    save([...teams, { id: Date.now().toString(), name: newName.trim(), theme: "forest" }]);
+    save([...teams, { id: Date.now().toString(), name: newName.trim(), theme: "tree" as ThemeKey }]);
     setNewName("");
   }
 
@@ -84,7 +84,7 @@ export default function TeamsPage() {
             <div className="flex items-center gap-3">
               <div
                 className="w-10 h-10 rounded-xl shrink-0"
-                style={{ background: THEMES[team.theme].gradient }}
+                style={{ background: THEMES[team.theme].pageBackground }}
               />
               <span className="text-[15px] font-semibold text-gray-900 font-noto">{team.name}</span>
             </div>

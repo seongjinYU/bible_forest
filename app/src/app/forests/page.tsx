@@ -17,7 +17,7 @@ export default function ForestsPage() {
   const router = useRouter();
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F5F5]">
+    <div className="flex flex-col min-h-dvh bg-[#F5F5F5]">
       <div className="h-11 bg-[#31C678]" />
 
       <AppBar
