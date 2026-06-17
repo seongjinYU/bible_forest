@@ -1,180 +1,395 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NT_BOOKS } from "@/constants/bible";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import AppBar from "@/components/AppBar";
-import { NT_BOOKS, TOTAL_NT_CHAPTERS } from "@/constants/bible";
 
-const STORAGE_KEY = "reading_checked";
-const TREES_KEY   = "reading_trees";
+const COLS = 6;
+const GRADIENT = "linear-gradient(90deg, #0FC8B8 0%, #13BD7F 100%)";
+
+// [1, 2, 9, 10] → "1~2, 9~10장"
+function formatChapters(chapters: number[]): string {
+  const sorted = [...chapters].sort((a, b) => a - b);
+  const ranges: string[] = [];
+  let i = 0;
+  while (i < sorted.length) {
+    let j = i;
+    while (j + 1 < sorted.length && sorted[j + 1] === sorted[j] + 1) j++;
+    ranges.push(j === i ? `${sorted[i]}` : `${sorted[i]}~${sorted[j]}`);
+    i = j + 1;
+  }
+  return ranges.join(", ") + "장";
+}
+
+// #0FC8B8 → #13BD7F 사이 t(0~1) 지점의 색상
+function lerpColor(t: number) {
+  const r = Math.round(15 + 4 * t);
+  const g = Math.round(200 - 11 * t);
+  const b = Math.round(184 - 57 * t);
+  return `rgb(${r},${g},${b})`;
+}
+
+// 선택된 장들을 같은 행 내 연속 구간(pill group)으로 묶고,
+// 각 장의 { pillIndex, pillLength } 를 반환
+function buildPillMap(sel: Set<number>): Map<number, { idx: number; len: number }> {
+  const sorted = Array.from(sel).sort((a, b) => a - b);
+  const map = new Map<number, { idx: number; len: number }>();
+  const groups: number[][] = [];
+  let cur: number[] = [];
+
+  for (const ch of sorted) {
+    if (cur.length === 0) {
+      cur.push(ch);
+    } else {
+      const prev = cur[cur.length - 1];
+      const consecutive = ch === prev + 1;
+      const startsNewRow = (ch - 1) % COLS === 0;
+      if (consecutive && !startsNewRow) {
+        cur.push(ch);
+      } else {
+        groups.push(cur);
+        cur = [ch];
+      }
+    }
+  }
+  if (cur.length > 0) groups.push(cur);
+
+  for (const g of groups) {
+    g.forEach((ch, i) => map.set(ch, { idx: i, len: g.length }));
+  }
+  return map;
+}
+
+type BookType = (typeof NT_BOOKS)[number];
 
 export default function ReadingPage() {
   const router = useRouter();
-  const [checked, setChecked]   = useState<Record<string, boolean>>({});
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [trees, setTrees]       = useState(0);
-  const [newTreeAlert, setNewTreeAlert] = useState(false);
-  const prevTotalRef = useRef(0);
+  const [selectedBook, setSelectedBook] = useState<BookType>(NT_BOOKS[0]); // 마태복음
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [alreadyRead, setAlreadyRead] = useState<Set<number>>(new Set());
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showEarned, setShowEarned] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  function loadProgress(bookName: string) {
+    fetch("/api/v1/bible/progress")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!Array.isArray(data.checked)) return;
+        const set = new Set<number>(
+          data.checked
+            .filter((c: { book_name: string; chapter: number }) => c.book_name === bookName)
+            .map((c: { book_name: string; chapter: number }) => c.chapter),
+        );
+        setAlreadyRead(set);
+        setSelected(new Set());
+      })
+      .catch(() => {});
+  }
 
   useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const savedChecked: Record<string, boolean> = raw ? JSON.parse(raw) : {};
-    const savedTrees = Number(localStorage.getItem(TREES_KEY) ?? 0);
-    setChecked(savedChecked);
-    setTrees(savedTrees);
-    prevTotalRef.current = Object.values(savedChecked).filter(Boolean).length;
-    setExpanded({ [NT_BOOKS[0].name]: true });
-  }, []);
+    loadProgress(selectedBook.name);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBook]);
 
-  const totalChecked = Object.values(checked).filter(Boolean).length;
-  const progressPct  = Math.round((totalChecked / TOTAL_NT_CHAPTERS) * 100);
+  function toggleChapter(ch: number) {
+    if (alreadyRead.has(ch)) return;
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(ch)) next.delete(ch);
+      else next.add(ch);
+      return next;
+    });
+  }
 
-  function toggleChapter(book: string, chapter: number) {
-    const key  = `${book}-${chapter}`;
-    const next = { ...checked, [key]: !checked[key] };
-    const nextTotal = Object.values(next).filter(Boolean).length;
+  function reset() {
+    setSelected(new Set());
+    setErrorMsg("");
+  }
 
-    const gained = Math.floor(nextTotal / 10) - Math.floor(prevTotalRef.current / 10);
-    if (gained > 0) {
-      const updated = trees + gained;
-      setTrees(updated);
-      localStorage.setItem(TREES_KEY, String(updated));
-      setNewTreeAlert(true);
+  // 완료 버튼 → 확인 팝업만 열기
+  function handleComplete() {
+    if (selected.size === 0) return;
+    setErrorMsg("");
+    setShowConfirm(true);
+  }
+
+  // 확인 팝업에서 "확인" → 실제 API 제출
+  async function handleConfirm() {
+    setShowConfirm(false);
+    setIsSubmitting(true);
+    const chapters = Array.from(selected).map((ch) => ({
+      book_name: selectedBook.name,
+      chapter: ch,
+    }));
+    const res = await fetch("/api/v1/bible/progress", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ checked: true, chapters }),
+    });
+    setIsSubmitting(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErrorMsg(data.message ?? "저장에 실패했습니다.");
+      return;
     }
+    // 인증 성공 후 alreadyRead 갱신 (같은 장 재제출 방지)
+    loadProgress(selectedBook.name);
 
-    prevTotalRef.current = nextTotal;
-    setChecked(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    const data = await res.json();
+    if (data.newly_earned?.length > 0) {
+      setShowEarned(true);
+    } else {
+      router.back();
+    }
   }
 
-  function toggleExpand(bookName: string) {
-    setExpanded((prev) => ({ ...prev, [bookName]: !prev[bookName] }));
-  }
-
-  function checkedCount(bookName: string, chapters: number) {
-    return Array.from({ length: chapters }, (_, i) =>
-      checked[`${bookName}-${i + 1}`] ? 1 : 0
-    ).reduce((a: number, b: number) => a + b, 0);
+  function selectBook(book: BookType) {
+    setSelectedBook(book);
+    setDropdownOpen(false);
   }
 
   return (
-    <div className="flex flex-col min-h-dvh bg-white">
+    <div className="flex flex-col h-dvh bg-white">
       <div className="h-11" />
 
-      <AppBar
-        title="성경읽기표"
-        onBack={() => router.back()}
-        className="border-b border-[#EEEEEE] text-[#222222]"
-      />
-
-      {/* 현황 요약 */}
-      <div className="mx-4 mt-3 rounded-[8px] bg-[#F6FEF8] px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-[15px] text-[#222222] font-pretendard">
-            누적 <span className="font-semibold text-[#31C678]">{totalChecked}</span>장
-          </span>
-          <div className="w-px h-4 bg-[#DDDDDD]" />
-          <span className="text-[15px] text-[#222222] font-pretendard">
-            나무 <span className="font-semibold text-[#31C678]">{trees}</span>그루
-          </span>
-        </div>
-        <span className="text-[13px] text-[#999999] font-pretendard">
-          {progressPct}% ({totalChecked}/{TOTAL_NT_CHAPTERS})
-        </span>
+      {/* AppBar */}
+      <div className="h-[54px] flex items-center justify-center relative px-4 shrink-0">
+        <span className="text-[17px] font-medium text-[#222222] font-noto">인증하기</span>
+        <button
+          onClick={() => router.back()}
+          className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center"
+          aria-label="닫기"
+        >
+          <X size={20} className="text-[#222222]" />
+        </button>
       </div>
 
-      {/* 진행 바 */}
-      <div className="mx-4 mt-2 h-2 rounded-full bg-[#F5F5F5] overflow-hidden">
-        <div
-          className="h-full rounded-full bg-[#31C678] transition-all duration-300"
-          style={{ width: `${progressPct}%` }}
-        />
-      </div>
+      {/* Book Selector */}
+      <div className="px-5 pt-3 pb-4 relative shrink-0 flex items-center justify-between">
+        <button
+          onClick={() => setDropdownOpen((v) => !v)}
+          className="flex items-center gap-1.5"
+        >
+          <span className="text-[28px] font-bold text-[#222222] font-noto leading-tight">
+            {selectedBook.name}
+          </span>
+          <ChevronDown size={22} className="text-[#222222] mt-1 shrink-0" />
+        </button>
 
-      {/* 책 목록 */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
-        {NT_BOOKS.map(({ name, chapters }) => {
-          const done   = checkedCount(name, chapters);
-          const isOpen = !!expanded[name];
-
+        {/* 전체 선택 / 전체 해제 토글 */}
+        {(() => {
+          const unread = Array.from(
+            { length: selectedBook.chapters },
+            (_, i) => i + 1,
+          ).filter((ch) => !alreadyRead.has(ch));
+          const allSelected = unread.length > 0 && unread.every((ch) => selected.has(ch));
           return (
-            <div key={name} className="border border-[#EEEEEE] rounded-[8px] overflow-hidden">
-              <button
-                onClick={() => toggleExpand(name)}
-                className="w-full flex items-center justify-between px-4 py-3 bg-white"
-              >
-                <div className="flex items-center gap-2">
-                  {isOpen
-                    ? <ChevronDown size={18} className="text-[#999999]" />
-                    : <ChevronRight size={18} className="text-[#999999]" />
-                  }
-                  <span className="text-[16px] font-medium text-[#222222] font-noto">{name}</span>
-                </div>
-                <span
-                  className={cn(
-                    "text-[14px] font-pretendard",
-                    done === chapters ? "text-[#31C678] font-semibold" : "text-[#999999]"
-                  )}
-                >
-                  {done}/{chapters}장
-                </span>
-              </button>
+            <button
+              onClick={() => {
+                if (allSelected) {
+                  setSelected(new Set());
+                } else {
+                  setSelected(new Set(unread));
+                }
+              }}
+              className="text-[14px] font-pretendard text-[#0FC8B8]"
+            >
+              {allSelected ? "전체 해제" : "전체 선택"}
+            </button>
+          );
+        })()}
 
-              {isOpen && (
-                <div className="px-3 pb-3 bg-[#FAFAFA]">
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    {Array.from({ length: chapters }, (_, i) => i + 1).map((ch) => {
-                      const isChecked = !!checked[`${name}-${ch}`];
-                      return (
-                        <button
-                          key={ch}
-                          onClick={() => toggleChapter(name, ch)}
-                          className={cn(
-                            "w-10 h-10 rounded-[8px] text-[14px] font-medium border transition-colors font-pretendard",
-                            isChecked
-                              ? "bg-[#31C678] text-white border-[#31C678]"
-                              : "bg-white text-[#222222] border-[#DDDDDD]"
-                          )}
-                        >
-                          {ch}
-                        </button>
-                      );
-                    })}
+        {dropdownOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setDropdownOpen(false)}
+            />
+            <div className="absolute left-5 top-full mt-1 z-50 bg-white border border-[#EEEEEE] rounded-[12px] shadow-lg max-h-[280px] overflow-y-auto w-[180px]">
+              {NT_BOOKS.map((book) => (
+                <button
+                  key={book.name}
+                  onClick={() => selectBook(book)}
+                  className={cn(
+                    "w-full text-left px-4 py-3 text-[15px] font-noto border-b border-[#F5F5F5] last:border-0",
+                    selectedBook.name === book.name
+                      ? "font-semibold"
+                      : "text-[#222222]",
+                  )}
+                  style={
+                    selectedBook.name === book.name
+                      ? { color: "#0FC8B8" }
+                      : undefined
+                  }
+                >
+                  {book.name}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Chapter Grid */}
+      <div className="flex-1 overflow-y-auto px-5">
+        {(() => {
+          const pillMap = buildPillMap(selected);
+          return (
+            <div className="grid grid-cols-6">
+              {Array.from({ length: selectedBook.chapters }, (_, i) => i + 1).map((ch) => {
+                const colIndex = (ch - 1) % COLS;
+                const isRead = alreadyRead.has(ch);
+                const isSel = selected.has(ch);
+
+                // pill 모양은 selected만 고려 (alreadyRead는 항상 단독 원)
+                const hasLeft = isSel && selected.has(ch - 1) && colIndex !== 0;
+                const hasRight = isSel && selected.has(ch + 1) && colIndex !== COLS - 1;
+
+                // 연속 pill 그라디언트: 각 셀이 전체 그라디언트의 한 조각을 표시
+                let bg: string | undefined;
+                if (isSel) {
+                  const p = pillMap.get(ch);
+                  if (p && p.len > 1) {
+                    const c1 = lerpColor(p.idx / p.len);
+                    const c2 = lerpColor((p.idx + 1) / p.len);
+                    bg = `linear-gradient(90deg, ${c1} 0%, ${c2} 100%)`;
+                  } else {
+                    bg = GRADIENT;
+                  }
+                } else if (isRead) {
+                  bg = GRADIENT;
+                }
+
+                return (
+                  <div key={ch} className="h-12 flex items-center">
+                    <button
+                      onClick={() => toggleChapter(ch)}
+                      disabled={isRead}
+                      className={cn(
+                        "h-10 flex items-center justify-center text-[14px] font-medium font-pretendard transition-colors select-none",
+                        !isSel && !isRead && "w-10 rounded-full border border-[#E0E0E0] bg-white text-[#AAAAAA] mx-auto",
+                        (isSel || isRead) && !hasLeft && !hasRight && "w-10 rounded-full mx-auto text-white",
+                        isSel && !hasLeft && hasRight && "w-full rounded-l-full pl-[10px] text-white",
+                        isSel && hasLeft && !hasRight && "w-full rounded-r-full pr-[10px] text-white",
+                        isSel && hasLeft && hasRight && "w-full text-white",
+                        isRead && "opacity-50",
+                      )}
+                      style={bg ? { background: bg } : undefined}
+                    >
+                      {ch}
+                    </button>
                   </div>
-                </div>
-              )}
+                );
+              })}
             </div>
           );
-        })}
+        })()}
       </div>
 
-      {/* 나무 획득 팝업 */}
-      <Dialog open={newTreeAlert} onOpenChange={setNewTreeAlert}>
+      {/* Error */}
+      {errorMsg && (
+        <p className="text-center text-[13px] text-[#F32F15] font-pretendard px-5 pb-1">
+          {errorMsg}
+        </p>
+      )}
+
+      {/* Bottom Buttons */}
+      <div className="px-5 pb-safe pt-3 flex gap-3 shrink-0">
+        <button
+          onClick={reset}
+          className="w-[88px] h-[54px] rounded-[8px] bg-[#F5F5F5] text-[#666666] text-[17px] font-medium font-noto shrink-0"
+        >
+          초기화
+        </button>
+        <button
+          onClick={handleComplete}
+          disabled={selected.size === 0 || isSubmitting}
+          className="flex-1 h-[54px] rounded-[8px] bg-[#31C678] text-white text-[17px] font-medium font-noto transition-opacity disabled:opacity-40"
+        >
+          {isSubmitting ? "저장 중..." : "완료"}
+        </button>
+      </div>
+
+      {/* Popup - check: 인증 확인 */}
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
         <DialogContent showCloseButton={false} className="p-0 gap-0 rounded-[12px]">
-          <DialogHeader className="px-4 pt-6 pb-2 flex flex-col items-center">
-            <span className="text-5xl mb-2">🌲</span>
-            <DialogTitle className="text-[20px] font-semibold text-[#222222] text-center font-noto">
-              나무를 획득했어요!
-            </DialogTitle>
-            <p className="text-[14px] text-[#666666] text-center mt-1 font-pretendard">
-              랜덤 나무 1그루 획득 · 누적 {trees}그루 보유 중
-            </p>
-          </DialogHeader>
-          <div className="px-4 pb-5 pt-3 flex flex-col gap-2">
+          <div className="flex items-center justify-end px-4 pt-4">
             <button
-              onClick={() => { setNewTreeAlert(false); router.push("/place-tree"); }}
+              onClick={() => setShowConfirm(false)}
+              className="w-10 h-10 flex items-center justify-center"
+            >
+              <X size={20} className="text-[#222222]" />
+            </button>
+          </div>
+          <div className="px-5 pb-6 flex flex-col gap-5">
+            <div className="flex flex-col items-center gap-1">
+              <DialogTitle className="text-[20px] font-bold text-[#222222] text-center font-noto leading-snug">
+                선택하신 정보로 인증을 진행할까요?
+              </DialogTitle>
+              <p className="text-[14px] text-[#888888] text-center font-noto whitespace-pre-line leading-relaxed">
+                {"인증할 성경을 정확히 입력하셨는지\n다시 한번 확인해 주세요."}
+              </p>
+            </div>
+
+            {/* 선택 정보 박스 */}
+            <div className="border border-[#EEEEEE] rounded-[8px] px-4 py-4 flex flex-col gap-2">
+              <div className="flex gap-4 text-[15px] font-pretendard">
+                <span className="text-[#AAAAAA] w-4 shrink-0">권</span>
+                <span className="text-[#222222]">{selectedBook.name}</span>
+              </div>
+              <div className="flex gap-4 text-[15px] font-pretendard">
+                <span className="text-[#AAAAAA] w-4 shrink-0">장</span>
+                <span className="text-[#222222]">{formatChapters(Array.from(selected))}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleConfirm}
               className="w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto"
             >
-              숲에 배치하기
+              확인
             </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Popup - new: 나무 획득 */}
+      <Dialog open={showEarned} onOpenChange={setShowEarned}>
+        <DialogContent showCloseButton={false} className="p-0 gap-0 rounded-[12px]">
+          <div className="flex items-center justify-end px-4 pt-4">
             <button
-              onClick={() => setNewTreeAlert(false)}
-              className="w-full h-[44px] rounded-[8px] border border-[#DDDDDD] text-[#666666] text-[16px] font-pretendard"
+              onClick={() => { setShowEarned(false); router.back(); }}
+              className="w-10 h-10 flex items-center justify-center"
             >
-              나중에 배치
+              <X size={20} className="text-[#222222]" />
+            </button>
+          </div>
+          <div className="px-5 pb-6 flex flex-col items-center gap-5">
+            <div className="flex flex-col items-center gap-1">
+              <DialogTitle className="text-[20px] font-bold text-[#222222] text-center font-noto leading-snug">
+                와! 새로운 나무를 획득했어요!
+              </DialogTitle>
+              <p className="text-[14px] text-[#888888] text-center font-noto">
+                [내 나무 보기]에서 확인하고 나무를 심어보세요!
+              </p>
+            </div>
+
+            {/* 나무 일러스트 placeholder */}
+            <div className="w-[120px] h-[120px] rounded-full bg-[#FFF0EC] flex items-center justify-center">
+              <span className="text-[56px]">🌳</span>
+            </div>
+
+            <button
+              onClick={() => { setShowEarned(false); router.back(); }}
+              className="w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto"
+            >
+              확인
             </button>
           </div>
         </DialogContent>

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, AlertCircle, X, Download, Link2 } from "lucide-react";
 import { THEMES } from "@/constants/themes";
-import type { ThemeKey } from "@/constants/themes";
+import { useTheme } from "@/context/ThemeContext";
 
 interface Stats {
   trees: number;
@@ -15,7 +15,6 @@ interface Stats {
 interface MainScreenProps {
   name: string;
   team: string;
-  theme: ThemeKey;
   stats: Stats;
 }
 
@@ -130,8 +129,9 @@ function StarIllustration() {
   );
 }
 
-export default function MainScreen({ name, team, theme, stats }: MainScreenProps) {
+export default function MainScreen({ name, team, stats }: MainScreenProps) {
   const router = useRouter();
+  const theme = useTheme();
   const [helpOpen, setHelpOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);

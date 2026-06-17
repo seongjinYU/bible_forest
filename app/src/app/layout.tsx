@@ -1,6 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/context/ThemeContext";
+import { getSessionUser } from "@/lib/auth";
+import { createSupabaseServerClient } from "@/lib/supabase";
+import { THEMES } from "@/constants/themes";
+import type { ThemeKey } from "@/constants/themes";
 
 const notoSansKR = Noto_Sans_KR({
   variable: "--font-noto-sans-kr",
@@ -20,16 +25,30 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let theme: ThemeKey = "tree";
+
+  const user = await getSessionUser();
+  if (user) {
+    const supabase = createSupabaseServerClient();
+    const { data } = await supabase
+      .from("teams")
+      .select("theme")
+      .eq("id", user.team_id)
+      .single();
+    const raw = (data as { theme?: string | null } | null)?.theme;
+    if (raw && raw in THEMES) theme = raw as ThemeKey;
+  }
+
   return (
     <html lang="ko" className={`${notoSansKR.variable} h-full`}>
       <body className="min-h-full bg-gray-100 flex flex-col items-center">
         <div className="w-full max-w-[390px] min-h-dvh bg-white flex flex-col relative overflow-x-hidden">
-          {children}
+          <ThemeProvider theme={theme}>{children}</ThemeProvider>
         </div>
       </body>
     </html>
