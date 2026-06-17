@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, AlertCircle, X, Download, Link2 } from "lucide-react";
+import { Download, AlertCircle, X } from "lucide-react";
+import { toBlob } from "html-to-image";
 import { THEMES } from "@/constants/themes";
 import { useTheme } from "@/context/ThemeContext";
 
@@ -129,33 +130,67 @@ function StarIllustration() {
   );
 }
 
+type ToastState = { message: string; action?: { label: string; onClick: () => void } } | null;
+
 export default function MainScreen({ name, team, stats }: MainScreenProps) {
   const router = useRouter();
   const theme = useTheme();
   const [helpOpen, setHelpOpen] = useState(false);
-  const [shareOpen, setShareOpen] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<ToastState>(null);
+  const screenRef = useRef<HTMLDivElement>(null);
+  const capturedBlobRef = useRef<Blob | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentTheme = THEMES[theme];
   const isStarTheme = theme === "star";
 
-  function showToast(message: string) {
-    setToast(message);
-    setTimeout(() => setToast(null), 2500);
+  useEffect(() => () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); }, []);
+
+  function showToast(message: string, action?: { label: string; onClick: () => void }) {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ message, action });
+    toastTimerRef.current = setTimeout(() => setToast(null), action ? 5000 : 2500);
   }
 
-  async function handleCopyLink() {
+  async function handleShare() {
+    const blob = capturedBlobRef.current;
+    if (!blob) return;
+    setToast(null);
+    const file = new File([blob], "bible-forest.png", { type: "image/png" });
     try {
-      await navigator.clipboard.writeText(window.location.href);
-      showToast("링크가 복사되었습니다!");
-      setShareOpen(false);
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: "팀 숲 성경읽기" });
+      } else if (navigator.share) {
+        await navigator.share({ title: "팀 숲 성경읽기", text: "함께 심고 함께 자라는 팀 숲 성경읽기 챌린지" });
+      }
     } catch {
-      showToast("복사에 실패했습니다.");
+      // 사용자 취소 또는 미지원
+    }
+  }
+
+  async function handleDownload() {
+    if (!screenRef.current) return;
+    try {
+      const blob = await toBlob(screenRef.current, {
+        pixelRatio: window.devicePixelRatio || 2,
+      });
+      if (!blob) return;
+      capturedBlobRef.current = blob;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "bible-forest.png";
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("이미지가 저장되었습니다!", { label: "공유", onClick: handleShare });
+    } catch {
+      showToast("이미지 저장에 실패했습니다.");
     }
   }
 
   return (
     <div
+      ref={screenRef}
       className="flex flex-col min-h-dvh"
       style={{ background: currentTheme.pageBackground }}
     >
@@ -167,11 +202,11 @@ export default function MainScreen({ name, team, stats }: MainScreenProps) {
         <div className="w-10 h-10" />
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShareOpen(true)}
+            onClick={handleDownload}
             className="w-[26px] h-[26px] flex items-center justify-center"
-            aria-label="공유"
+            aria-label="이미지 저장"
           >
-            <Upload size={22} className={isStarTheme ? "text-white" : "text-[#222222]"} />
+            <Download size={22} className={isStarTheme ? "text-white" : "text-[#222222]"} />
           </button>
           <button
             onClick={() => setHelpOpen(true)}
@@ -281,59 +316,6 @@ export default function MainScreen({ name, team, stats }: MainScreenProps) {
         </button>
       </div>
 
-      {/* Popup_share */}
-      {shareOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-[358px] bg-white rounded-[8px] overflow-hidden">
-            <div className="h-[50px] flex items-center justify-end px-4">
-              <button
-                onClick={() => setShareOpen(false)}
-                className="w-10 h-10 flex items-center justify-center"
-                aria-label="닫기"
-              >
-                <X size={20} className="text-[#222222]" />
-              </button>
-            </div>
-            <div className="px-4 pb-9 pt-6 flex flex-col items-center gap-6">
-              <div className="flex flex-col items-center gap-1">
-                <h2 className="text-[20px] font-medium leading-[28px] tracking-[-0.03em] text-[#222222] text-center font-noto">
-                  함께 하고 싶은 영혼에게 공유해보세요!
-                </h2>
-                <p className="text-[16px] font-normal leading-[24px] tracking-[-0.03em] text-[#666666] text-center font-noto">
-                  팀 영혼들과 서로 독려하며 함께 해요!
-                </p>
-              </div>
-              <div className="flex items-start gap-6">
-                <button className="flex flex-col items-center gap-4 w-20">
-                  <div className="w-20 h-20 rounded-full bg-[#31C678] flex items-center justify-center">
-                    <Download size={32} className="text-white" />
-                  </div>
-                  <span className="text-[16px] font-normal leading-[24px] tracking-[-0.03em] text-[#666666] text-center font-noto whitespace-pre-line">
-                    {"이미지\n다운로드"}
-                  </span>
-                </button>
-                <button className="flex flex-col items-center gap-4 w-20">
-                  <div className="w-20 h-20 rounded-full bg-[#FFEB00] flex items-center justify-center">
-                    <span className="text-[28px] font-bold text-[#3B1D26] font-pretendard leading-none">K</span>
-                  </div>
-                  <span className="text-[16px] font-normal leading-[24px] tracking-[-0.03em] text-[#666666] text-center font-noto whitespace-pre-line">
-                    {"카카오톡\n공유"}
-                  </span>
-                </button>
-                <button onClick={handleCopyLink} className="flex flex-col items-center gap-4 w-20">
-                  <div className="w-20 h-20 rounded-full bg-[#F4F5F7] flex items-center justify-center">
-                    <Link2 size={32} className="text-[#222222]" />
-                  </div>
-                  <span className="text-[16px] font-normal leading-[24px] tracking-[-0.03em] text-[#666666] text-center font-noto">
-                    링크 복사
-                  </span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Popup_info */}
       {helpOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
@@ -388,8 +370,16 @@ export default function MainScreen({ name, team, stats }: MainScreenProps) {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 bg-[#222222]/90 rounded-full text-white text-[14px] font-pretendard whitespace-nowrap">
-          {toast}
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 bg-[#222222]/90 rounded-full text-white text-[14px] font-pretendard whitespace-nowrap flex items-center gap-3">
+          <span>{toast.message}</span>
+          {toast.action && (
+            <button
+              onClick={toast.action.onClick}
+              className="text-[#31C678] font-semibold"
+            >
+              {toast.action.label}
+            </button>
+          )}
         </div>
       )}
     </div>
