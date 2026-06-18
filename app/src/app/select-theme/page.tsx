@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +12,7 @@ const THEMES = [
 
 type ThemeId = (typeof THEMES)[number]["id"];
 
-export default function SelectThemePage() {
+function SelectThemeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const teamId = searchParams.get("team_id");
@@ -129,5 +129,13 @@ export default function SelectThemePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SelectThemePage() {
+  return (
+    <Suspense fallback={null}>
+      <SelectThemeContent />
+    </Suspense>
   );
 }
