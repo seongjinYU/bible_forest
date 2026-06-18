@@ -28,7 +28,9 @@ export default function RegisterPage() {
   useEffect(() => {
     fetch("/api/v1/teams")
       .then((r) => r.json())
-      .then((data: { teams: Team[] }) => setTeams(data.teams ?? []));
+      .then((data: { teams: Team[] }) =>
+        setTeams((data.teams ?? []).sort((a, b) => a.name.localeCompare(b.name, "ko")))
+      );
   }, []);
 
   useEffect(() => {
@@ -191,6 +193,7 @@ export default function RegisterPage() {
                 autoFocus
                 type="text"
                 value={name}
+                maxLength={MAX_NAME_LENGTH}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="닉네임을 작성해 주세요"
                 className={cn(
