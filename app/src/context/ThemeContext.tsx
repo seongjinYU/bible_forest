@@ -3,7 +3,7 @@
 import { createContext, useContext } from "react";
 import type { ThemeKey } from "@/constants/themes";
 
-const ThemeContext = createContext<ThemeKey>("tree");
+const ThemeContext = createContext<ThemeKey>("forest");
 
 export function ThemeProvider({
   theme,

@@ -143,7 +143,7 @@ export default function MainScreen({ name, team, stats }: MainScreenProps) {
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentTheme = THEMES[theme];
-  const isStarTheme = theme === "star";
+  const isStarTheme = theme === "night";
 
   useEffect(() => () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); }, []);
 
@@ -201,12 +201,13 @@ export default function MainScreen({ name, team, stats }: MainScreenProps) {
   const textMuted = isStarTheme ? "text-white/80" : "text-[#555555]";
   const isMusicTheme = theme === "music";
 
+
   return (
     <div ref={screenRef} className="relative min-h-dvh overflow-hidden">
       {/* 전체화면 일러스트 배경 */}
       <div className="absolute inset-0">
-        {theme === "tree"  && <TreeIllustration />}
-        {theme === "star"  && <StarIllustration />}
+        {theme === "forest" && <TreeIllustration />}
+        {theme === "night"  && <StarIllustration />}
         {isMusicTheme && <div className="absolute inset-0 bg-white" />}
       </div>
 

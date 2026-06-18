@@ -30,7 +30,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let theme: ThemeKey = "tree";
+  let theme: ThemeKey = "forest";
 
   const user = await getSessionUser();
   if (user) {

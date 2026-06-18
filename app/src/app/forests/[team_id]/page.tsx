@@ -3,12 +3,12 @@ import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
 
-type ThemeKey = "tree" | "star" | "music";
+type ThemeKey = "forest" | "night" | "music";
 
 const THEME_LABELS: Record<ThemeKey, string> = {
-  tree: "숲",
-  star: "밤하늘",
-  music: "악보",
+  forest: "숲",
+  night:  "밤하늘",
+  music:  "악보",
 };
 
 function TreeIllustration() {
@@ -124,10 +124,10 @@ export default async function ForestDetailPage({
   if (!teamRes.data) redirect("/forests");
 
   const team = teamRes.data as { id: string; name: string; theme: string | null };
-  const rawTheme = team.theme ?? "tree";
-  const theme: ThemeKey = (["tree", "star", "music"] as const).includes(rawTheme as ThemeKey)
+  const rawTheme = team.theme ?? "forest";
+  const theme: ThemeKey = (["forest", "night", "music"] as const).includes(rawTheme as ThemeKey)
     ? (rawTheme as ThemeKey)
-    : "tree";
+    : "forest";
 
   const users = (usersRes.data ?? []) as UserRow[];
   const participants = users.length;
@@ -135,15 +135,15 @@ export default async function ForestDetailPage({
   const treeCount = (treesRes.data ?? []).length;
 
   const themeLabel = THEME_LABELS[theme];
-  const isStarTheme = theme === "star";
+  const isStarTheme = theme === "night";
   const isMusicTheme = theme === "music";
 
   return (
     <div className="relative min-h-dvh overflow-hidden">
       {/* 배경 일러스트 */}
       <div className="absolute inset-0">
-        {theme === "tree"  && <TreeIllustration />}
-        {theme === "star"  && <StarIllustration />}
+        {theme === "forest" && <TreeIllustration />}
+        {theme === "night"  && <StarIllustration />}
         {isMusicTheme && <div className="absolute inset-0 bg-white" />}
       </div>
 

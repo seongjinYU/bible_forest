@@ -95,8 +95,8 @@ function StarThumbnail() {
 }
 
 function ThemeThumbnail({ theme }: { theme: string }) {
-  if (theme === "tree")  return <TreeThumbnail />;
-  if (theme === "star")  return <StarThumbnail />;
+  if (theme === "forest") return <TreeThumbnail />;
+  if (theme === "night")  return <StarThumbnail />;
   return null;
 }
 
@@ -125,7 +125,7 @@ function TeamCard({
       {/* 썸네일 영역 */}
       <div className="relative overflow-hidden" style={{ height: 130, background: color.illus }}>
         {(team.theme || team.score > 0 || team.tree_count > 0) && (
-          <ThemeThumbnail theme={team.theme ?? "tree"} />
+          <ThemeThumbnail theme={team.theme ?? "forest"} />
         )}
         {isMyTeam && (
           <span

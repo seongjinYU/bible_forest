@@ -5,9 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const THEMES = [
-  { id: "star", label: "별", emoji: "⭐" },
-  { id: "tree", label: "나무", emoji: "🌳" },
-  { id: "music", label: "음표", emoji: "🎵" },
+  { id: "night",  label: "밤하늘", emoji: "⭐" },
+  { id: "forest", label: "숲",     emoji: "🌳" },
+  { id: "music",  label: "악보",   emoji: "🎵" },
 ] as const;
 
 type ThemeId = (typeof THEMES)[number]["id"];
