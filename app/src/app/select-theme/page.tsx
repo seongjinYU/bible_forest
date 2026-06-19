@@ -5,10 +5,22 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const THEMES = [
-  { id: "night",  label: "밤하늘", emoji: "⭐" },
-  { id: "forest", label: "숲",     emoji: "🌳" },
-  { id: "music",  label: "악보",   emoji: "🎵" },
-] as const;
+  {
+    id: "forest" as const,
+    image: "/assets/forest/theme.png",
+    description: "저 높이 솟은 산이\n되기보다 여기\n오름직한 ..더보기",
+  },
+  {
+    id: "night" as const,
+    image: "/assets/night/theme.png",
+    description: "하늘에\n저 별들처럼",
+  },
+  {
+    id: "ocean" as const,
+    image: "/assets/ocean/theme.png",
+    description: "물이\n바다 덮음 같이",
+  },
+];
 
 type ThemeId = (typeof THEMES)[number]["id"];
 
@@ -55,7 +67,7 @@ function SelectThemeContent() {
             </p>
           </div>
           <button
-            onClick={() => router.push("/")}
+            onClick={() => { window.location.href = "/"; }}
             className="w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[20px] font-medium font-noto"
           >
             확인
@@ -70,39 +82,39 @@ function SelectThemeContent() {
       <div className="h-11" />
       <div className="h-[62px]" />
 
-      <div className="flex-1 flex flex-col justify-between px-4 pb-safe">
-        <div className="flex flex-col gap-6 pt-4">
-          <div className="flex flex-col items-center">
-            <h1 className="text-[30px] font-bold leading-[100%] tracking-[-3%] text-[#222222] font-noto text-center">
-              테마 선택
-            </h1>
-          </div>
-
+      <div className="flex-1 flex flex-col justify-between px-5 pb-safe">
+        <div className="flex flex-col gap-8 pt-4">
+          <h1 className="text-[30px] font-bold leading-[100%] tracking-[-3%] text-[#222222] font-noto text-center">
+            테마 선택
+          </h1>
           <p className="text-[18px] font-normal leading-[24px] tracking-[-3%] text-[#222222] text-center font-noto">
-            팀 숲의 테마를 선택해 주세요!
+            팀에서 사용할 테마를 선택해 주세요!
           </p>
 
-          <div className="flex flex-row items-center justify-center gap-4 pt-2">
+          <div className="flex flex-row items-start justify-center gap-3">
             {THEMES.map((theme) => {
               const isSelected = selected === theme.id;
               return (
                 <button
                   key={theme.id}
                   onClick={() => setSelected(theme.id)}
-                  className={cn(
-                    "w-[104px] h-[104px] rounded-full border-2 flex flex-col items-center justify-center gap-1 transition-colors",
-                    isSelected
-                      ? "border-[#19CDCD] bg-[#19CDCD]"
-                      : "border-[#19CDCD] bg-[#E8E8E8]"
-                  )}
+                  className="flex flex-col items-center gap-3 flex-1"
                 >
-                  <span className="text-[28px] leading-none">{theme.emoji}</span>
-                  <span className={cn(
-                    "text-[14px] font-medium font-noto",
-                    isSelected ? "text-white" : "text-[#555555]"
-                  )}>
-                    {theme.label}
-                  </span>
+                  <div
+                    className={cn(
+                      "w-full aspect-square rounded-full transition-all",
+                      isSelected && "ring-[3px] ring-[#19CDCD]",
+                    )}
+                  >
+                    <img
+                      src={theme.image}
+                      alt=""
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  </div>
+                  <p className="text-[13px] text-center text-[#333333] font-noto leading-[1.6] whitespace-pre-line">
+                    {theme.description}
+                  </p>
                 </button>
               );
             })}
@@ -121,7 +133,7 @@ function SelectThemeContent() {
               "w-full h-[54px] rounded-[8px] text-[20px] font-medium transition-colors font-noto",
               selected && !isSubmitting
                 ? "bg-[#31C678] text-white"
-                : "bg-[#F5F5F5] text-[#666666]"
+                : "bg-[#F5F5F5] text-[#666666]",
             )}
           >
             {isSubmitting ? "저장 중..." : "선택완료"}

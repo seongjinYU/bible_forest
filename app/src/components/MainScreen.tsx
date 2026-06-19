@@ -199,7 +199,7 @@ export default function MainScreen({ name, team, stats }: MainScreenProps) {
   const textPrimary = isStarTheme ? "text-white" : "text-[#222222]";
   const textSecondary = isStarTheme ? "text-white/70" : "text-[#999999]";
   const textMuted = isStarTheme ? "text-white/80" : "text-[#555555]";
-  const isMusicTheme = theme === "music";
+  const isOceanTheme = theme === "ocean";
 
 
   return (
@@ -208,7 +208,7 @@ export default function MainScreen({ name, team, stats }: MainScreenProps) {
       <div className="absolute inset-0">
         {theme === "forest" && <TreeIllustration />}
         {theme === "night"  && <StarIllustration />}
-        {isMusicTheme && <div className="absolute inset-0 bg-white" />}
+        {isOceanTheme && <div className="absolute inset-0 bg-white" />}
       </div>
 
       {/* 콘텐츠 레이어 */}
@@ -266,26 +266,26 @@ export default function MainScreen({ name, team, stats }: MainScreenProps) {
         <div className="flex-1 relative">
           {/* 통계 오버레이 */}
           <div className="absolute bottom-0 left-0 right-0 px-6 pb-5">
-            <p className={`text-[15px] font-pretendard mb-0.5 ${isMusicTheme ? "text-[#555555]" : "text-white/80"}`}>
+            <p className={`text-[15px] font-pretendard mb-0.5 ${isOceanTheme ? "text-[#555555]" : "text-white/80"}`}>
               현재 우리 숲은?
             </p>
             <div className="flex items-center gap-[3px] mb-1">
-              <span className={`text-[24px] font-semibold font-pretendard ${isMusicTheme ? "text-[#222222]" : "text-white"}`}>
+              <span className={`text-[24px] font-semibold font-pretendard ${isOceanTheme ? "text-[#222222]" : "text-white"}`}>
                 {stats.trees}
               </span>
-              <span className={`text-[24px] font-pretendard ${isMusicTheme ? "text-[#222222]" : "text-white"}`}>그루</span>
-              <div className={`w-1 h-1 rounded-full mx-[5px] ${isMusicTheme ? "bg-[#2E9200]" : "bg-white/60"}`} />
-              <span className={`text-[24px] font-semibold font-pretendard ${isMusicTheme ? "text-[#222222]" : "text-white"}`}>
+              <span className={`text-[24px] font-pretendard ${isOceanTheme ? "text-[#222222]" : "text-white"}`}>그루</span>
+              <div className={`w-1 h-1 rounded-full mx-[5px] ${isOceanTheme ? "bg-[#2E9200]" : "bg-white/60"}`} />
+              <span className={`text-[24px] font-semibold font-pretendard ${isOceanTheme ? "text-[#222222]" : "text-white"}`}>
                 {stats.score}
               </span>
-              <span className={`text-[24px] font-pretendard ${isMusicTheme ? "text-[#222222]" : "text-white"}`}>점</span>
+              <span className={`text-[24px] font-pretendard ${isOceanTheme ? "text-[#222222]" : "text-white"}`}>점</span>
             </div>
             <div className="flex items-center gap-1">
-              <span className={`text-[18px] font-pretendard ${isMusicTheme ? "text-[#555555]" : "text-white/80"}`}>참여중</span>
-              <span className={`text-[18px] font-semibold font-pretendard ${isMusicTheme ? "text-[#222222]" : "text-white"}`}>
+              <span className={`text-[18px] font-pretendard ${isOceanTheme ? "text-[#555555]" : "text-white/80"}`}>참여중</span>
+              <span className={`text-[18px] font-semibold font-pretendard ${isOceanTheme ? "text-[#222222]" : "text-white"}`}>
                 {stats.participants}
               </span>
-              <span className={`text-[18px] font-pretendard ${isMusicTheme ? "text-[#555555]" : "text-white/80"}`}>명</span>
+              <span className={`text-[18px] font-pretendard ${isOceanTheme ? "text-[#555555]" : "text-white/80"}`}>명</span>
             </div>
           </div>
         </div>

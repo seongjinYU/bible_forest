@@ -3,12 +3,12 @@ import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
 
-type ThemeKey = "forest" | "night" | "music";
+type ThemeKey = "forest" | "night" | "ocean";
 
 const THEME_LABELS: Record<ThemeKey, string> = {
   forest: "숲",
   night:  "밤하늘",
-  music:  "악보",
+  ocean:  "바다",
 };
 
 function TreeIllustration() {
@@ -125,7 +125,7 @@ export default async function ForestDetailPage({
 
   const team = teamRes.data as { id: string; name: string; theme: string | null };
   const rawTheme = team.theme ?? "forest";
-  const theme: ThemeKey = (["forest", "night", "music"] as const).includes(rawTheme as ThemeKey)
+  const theme: ThemeKey = (["forest", "night", "ocean"] as const).includes(rawTheme as ThemeKey)
     ? (rawTheme as ThemeKey)
     : "forest";
 
@@ -136,7 +136,7 @@ export default async function ForestDetailPage({
 
   const themeLabel = THEME_LABELS[theme];
   const isStarTheme = theme === "night";
-  const isMusicTheme = theme === "music";
+  const isOceanTheme = theme === "ocean";
 
   return (
     <div className="relative min-h-dvh overflow-hidden">
@@ -144,7 +144,7 @@ export default async function ForestDetailPage({
       <div className="absolute inset-0">
         {theme === "forest" && <TreeIllustration />}
         {theme === "night"  && <StarIllustration />}
-        {isMusicTheme && <div className="absolute inset-0 bg-white" />}
+        {isOceanTheme && <div className="absolute inset-0 bg-white" />}
       </div>
 
       {/* 콘텐츠 */}
@@ -157,7 +157,7 @@ export default async function ForestDetailPage({
           <div className="absolute bottom-0 left-0 right-0 px-6 pb-5">
             <p
               className={`text-[15px] font-pretendard mb-0.5 ${
-                isMusicTheme ? "text-[#555555]" : "text-white/80"
+                isOceanTheme ? "text-[#555555]" : "text-white/80"
               }`}
             >
               현재 {team.name}의 {themeLabel}은?
@@ -165,33 +165,33 @@ export default async function ForestDetailPage({
             <div className="flex items-center gap-[3px] mb-1">
               <span
                 className={`text-[24px] font-semibold font-pretendard ${
-                  isMusicTheme ? "text-[#222222]" : "text-white"
+                  isOceanTheme ? "text-[#222222]" : "text-white"
                 }`}
               >
                 {treeCount}
               </span>
               <span
                 className={`text-[24px] font-pretendard ${
-                  isMusicTheme ? "text-[#222222]" : "text-white"
+                  isOceanTheme ? "text-[#222222]" : "text-white"
                 }`}
               >
                 그루
               </span>
               <div
                 className={`w-1 h-1 rounded-full mx-[5px] ${
-                  isMusicTheme ? "bg-[#2E9200]" : "bg-white/60"
+                  isOceanTheme ? "bg-[#2E9200]" : "bg-white/60"
                 }`}
               />
               <span
                 className={`text-[24px] font-semibold font-pretendard ${
-                  isMusicTheme ? "text-[#222222]" : "text-white"
+                  isOceanTheme ? "text-[#222222]" : "text-white"
                 }`}
               >
                 {score}
               </span>
               <span
                 className={`text-[24px] font-pretendard ${
-                  isMusicTheme ? "text-[#222222]" : "text-white"
+                  isOceanTheme ? "text-[#222222]" : "text-white"
                 }`}
               >
                 점
@@ -200,21 +200,21 @@ export default async function ForestDetailPage({
             <div className="flex items-center gap-1">
               <span
                 className={`text-[18px] font-pretendard ${
-                  isMusicTheme ? "text-[#555555]" : "text-white/80"
+                  isOceanTheme ? "text-[#555555]" : "text-white/80"
                 }`}
               >
                 참여중
               </span>
               <span
                 className={`text-[18px] font-semibold font-pretendard ${
-                  isMusicTheme ? "text-[#222222]" : "text-white"
+                  isOceanTheme ? "text-[#222222]" : "text-white"
                 }`}
               >
                 {participants}
               </span>
               <span
                 className={`text-[18px] font-pretendard ${
-                  isMusicTheme ? "text-[#555555]" : "text-white/80"
+                  isOceanTheme ? "text-[#555555]" : "text-white/80"
                 }`}
               >
                 명

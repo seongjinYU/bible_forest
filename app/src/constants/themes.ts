@@ -1,5 +1,5 @@
-export type ThemeKey = "forest" | "night" | "music";
-export type ElementKey = "tree" | "star" | "note";
+export type ThemeKey = "forest" | "night" | "ocean";
+export type ElementKey = "tree" | "star" | "marine";
 
 export const THEMES: Record<ThemeKey, {
   label: string;
@@ -19,10 +19,10 @@ export const THEMES: Record<ThemeKey, {
     element: "star",
     pageBackground: "linear-gradient(180deg, #2D0566 0%, #7B3FC8 100%)",
   },
-  music: {
-    label: "악보",
-    icon: "🎵",
-    element: "note",
+  ocean: {
+    label: "바다",
+    icon: "🌊",
+    element: "marine",
     pageBackground: "#FFFFFF",
   },
 };
