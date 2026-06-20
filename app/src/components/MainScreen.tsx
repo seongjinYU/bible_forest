@@ -220,9 +220,8 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
               </div>
               <button
                 onClick={() => router.push("/reading")}
-                className={`h-[40px] px-5 rounded-full text-white text-[15px] font-semibold font-pretendard ${
-                  theme === "night" ? "bg-theme-night" : theme === "ocean" ? "bg-theme-ocean" : "bg-theme-forest"
-                }`}
+                className="h-[40px] px-5 rounded-full text-white text-[15px] font-semibold font-pretendard"
+                style={{ backgroundColor: currentTheme.color }}
               >
                 인증하기
               </button>
