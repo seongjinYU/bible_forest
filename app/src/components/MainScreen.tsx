@@ -179,7 +179,7 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
               </span>
             </div>
             <p className={`text-[16px] font-pretendard ${textMuted}`}>
-              팀 영혼들과 함께 나무를 심어보세요!
+              {currentTheme.tagline}
             </p>
           </div>
           <button
@@ -197,13 +197,13 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
           {/* 통계 오버레이 */}
           <div className="absolute bottom-0 left-0 right-0 px-6 pb-5">
             <p className={`text-[15px] font-pretendard mb-0.5 ${isDarkBg ? "text-white/80" : "text-[#555555]"}`}>
-              현재 우리 숲은?
+              {currentTheme.statPhrase}
             </p>
             <div className="flex items-center gap-[3px] mb-1">
               <span className={`text-[24px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
                 {stats.trees}
               </span>
-              <span className={`text-[24px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>그루</span>
+              <span className={`text-[24px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>{currentTheme.unit}</span>
               <div className={`w-1 h-1 rounded-full mx-[5px] ${isDarkBg ? "bg-white/60" : "bg-[#2E9200]"}`} />
               <span className={`text-[24px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
                 {stats.score}
@@ -239,7 +239,7 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
                 : "bg-white/80 backdrop-blur-sm border border-white/60 text-[#222222]"
             }`}
           >
-            다른 숲 구경하러 가기
+            {currentTheme.forumsLabel}
           </button>
         </div>
       </div>

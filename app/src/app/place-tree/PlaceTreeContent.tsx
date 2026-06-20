@@ -332,10 +332,8 @@ export default function PlaceTreeContent({ plantedTrees, previewName, previewTea
             <button
               onClick={() => setShowConfirm(true)}
               disabled={!position || isSubmitting}
-              className={cn(
-                "flex-1 h-[54px] rounded-[8px] text-[17px] font-medium font-noto transition-opacity disabled:opacity-40",
-                position ? "bg-[#31C678] text-white" : "bg-white/20 text-white/50",
-              )}
+              className="flex-1 h-[54px] rounded-[8px] text-[17px] font-medium font-noto transition-opacity disabled:opacity-40 text-white"
+              style={{ backgroundColor: position ? THEMES[theme].color : "rgba(255,255,255,0.2)" }}
             >
               {isSubmitting ? "배치 중..." : "배치 완료"}
             </button>

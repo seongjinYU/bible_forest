@@ -321,10 +321,10 @@ export default function ReadingClient({
           <div className="px-5 pb-6 flex flex-col items-center gap-5">
             <div className="flex flex-col items-center gap-1">
               <DialogTitle className="text-[20px] font-bold text-[#222222] text-center font-noto leading-snug">
-                와! 새로운 요소를 획득했어요!
+                와! 새로운 아이템을 획득했어요!
               </DialogTitle>
               <p className="text-[14px] text-[#888888] text-center font-noto">
-                [내 보관함]에서 확인하고 요소를 심어보세요!
+                [내 보관함]에서 확인하고 아이템을 심어보세요!
               </p>
             </div>
             {(() => {
