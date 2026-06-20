@@ -50,7 +50,6 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
   const [toast, setToast] = useState<ToastState>(null);
   const screenRef = useRef<HTMLDivElement>(null);
   const contentLayerRef = useRef<HTMLDivElement>(null);
-  const capturedBlobRef = useRef<Blob | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentTheme = THEMES[theme];
@@ -64,46 +63,65 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
     toastTimerRef.current = setTimeout(() => setToast(null), action ? 5000 : 2500);
   }
 
-  async function handleShare() {
-    const blob = capturedBlobRef.current;
-    if (!blob) return;
-    setToast(null);
-    const file = new File([blob], "bible-forest.png", { type: "image/png" });
-    try {
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "팀 숲 성경읽기" });
-      } else if (navigator.share) {
-        await navigator.share({ title: "팀 숲 성경읽기", text: "함께 심고 함께 자라는 팀 숲 성경읽기 챌린지" });
-      }
-    } catch {
-      // 사용자 취소 또는 미지원
-    }
-  }
-
   async function handleDownload() {
     if (!screenRef.current || !contentLayerRef.current) return;
     const layer = contentLayerRef.current;
     try {
       setToast(null);
       layer.style.visibility = "hidden";
-      // 브라우저가 실제로 페인트하고 난 뒤 캡처
       await new Promise<void>((res) => requestAnimationFrame(() => requestAnimationFrame(() => res())));
+
+      // 모바일에서 html-to-image가 <img> src를 캔버스에 못 그리는 문제 방지:
+      // 캡처 전 모든 이미지를 data URL로 변환해 직접 주입
+      const allImgs = Array.from(screenRef.current.querySelectorAll("img")) as HTMLImageElement[];
+      const originalSrcs = allImgs.map((img) => img.src);
+      await Promise.all(
+        allImgs.map(async (img, i) => {
+          try {
+            const resp = await fetch(originalSrcs[i]);
+            const imgBlob = await resp.blob();
+            await new Promise<void>((res, rej) => {
+              const reader = new FileReader();
+              reader.onload = () => { img.src = reader.result as string; res(); };
+              reader.onerror = rej;
+              reader.readAsDataURL(imgBlob);
+            });
+          } catch {
+            // 실패 시 원본 src 유지
+          }
+        })
+      );
+
       const blob = await toBlob(screenRef.current, {
         pixelRatio: window.devicePixelRatio || 2,
       });
+
+      allImgs.forEach((img, i) => { img.src = originalSrcs[i]; });
       layer.style.visibility = "visible";
+
       if (!blob) return;
-      capturedBlobRef.current = blob;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "bible-forest.png";
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast("이미지가 저장되었습니다!", { label: "공유", onClick: handleShare });
-    } catch {
+
+      const file = new File([blob], "bible-forest.png", { type: "image/png" });
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: "팀 숲 성경읽기" });
+      } else if (navigator.share) {
+        await navigator.share({ title: "팀 숲 성경읽기", text: "함께 심고 함께 자라는 팀 숲 성경읽기 챌린지" });
+      } else {
+        // 데스크톱 폴백
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "bible-forest.png";
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast("이미지가 저장되었습니다!");
+      }
+    } catch (err) {
       layer.style.visibility = "visible";
-      showToast("이미지 저장에 실패했습니다.");
+      // 사용자가 공유 시트를 닫은 경우는 에러 아님
+      if (!(err instanceof Error && err.name === "AbortError")) {
+        showToast("이미지 저장에 실패했습니다.");
+      }
     }
   }
 
@@ -142,12 +160,9 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
       </div>
 
       {/* 콘텐츠 레이어 */}
-      <div ref={contentLayerRef} className="relative z-10 flex flex-col min-h-dvh">
-        {/* 상태바 */}
-        <div className="h-11" />
-
+      <div ref={contentLayerRef} className="relative z-10 flex flex-col min-h-dvh" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         {/* AppBar */}
-        <div className="h-[60px] flex items-center justify-between px-4">
+        <div className="h-[44px] flex items-end pb-1 justify-between px-4">
           <div className="w-10 h-10" />
           <div className="flex items-center gap-2">
             <button
@@ -168,7 +183,7 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
         </div>
 
         {/* 유저 정보 */}
-        <div className="px-6 pt-2 pb-2 flex items-start justify-between">
+        <div className="px-6 pt-0 pb-2 flex items-start justify-between">
           <div className="flex flex-col gap-1">
             <div className="flex items-baseline gap-1.5">
               <span className={`text-[24px] font-bold leading-none font-pretendard ${textPrimary}`}>
@@ -184,7 +199,7 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
           </div>
           <button
             onClick={() => router.push("/storage")}
-            className={`shrink-0 h-[34px] px-[14px] rounded-[20px] border text-[14px] font-pretendard ${
+            className={`mt-2 shrink-0 h-[34px] px-[14px] rounded-[20px] border text-[14px] font-pretendard ${
               isDarkBg ? "border-white text-white" : "border-[#222222] text-[#222222]"
             }`}
           >
