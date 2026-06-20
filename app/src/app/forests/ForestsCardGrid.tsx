@@ -17,88 +17,6 @@ const TEAM_COLORS: Record<string, TeamColor> = {
 };
 const DEFAULT_COLOR: TeamColor = { primary: "#66BB6A", illus: "#F1FBF1", border: "#C8E6C9" };
 
-function TreeThumbnail() {
-  return (
-    <div
-      className="absolute inset-0 overflow-hidden"
-      style={{ background: "linear-gradient(180deg, #C8ECFF 0%, #A8D870 55%, #5CBD50 100%)" }}
-    >
-      <svg
-        className="absolute bottom-0 left-0 w-full"
-        viewBox="0 0 200 90"
-        preserveAspectRatio="xMidYMax meet"
-        aria-hidden
-      >
-        <path d="M0 90 L0 55 Q30 35 65 45 Q100 55 135 32 Q165 18 200 38 L200 90 Z" fill="#6BC46B" />
-        <path d="M0 90 L0 68 Q28 52 57 60 Q90 70 125 52 Q155 38 200 56 L200 90 Z" fill="#3DB340" />
-        <circle cx="45"  cy="43" r="7" fill="#228B22" />
-        <circle cx="100" cy="30" r="6" fill="#228B22" />
-        <circle cx="158" cy="36" r="6" fill="#228B22" />
-        <circle cx="30"  cy="59" r="8" fill="#1E7A1E" />
-        <circle cx="80"  cy="51" r="8" fill="#1E7A1E" />
-        <circle cx="148" cy="53" r="7" fill="#1E7A1E" />
-      </svg>
-    </div>
-  );
-}
-
-function StarThumbnail() {
-  const dots = [
-    { x: "10%", y: "15%" }, { x: "70%", y: "10%" }, { x: "85%", y: "28%" },
-    { x: "30%", y: "30%" }, { x: "55%", y: "18%" }, { x: "45%", y: "58%" },
-    { x: "80%", y: "48%" }, { x: "15%", y: "62%" }, { x: "60%", y: "72%" },
-    { x: "92%", y: "20%" }, { x: "25%", y: "50%" },
-  ];
-  return (
-    <div
-      className="absolute inset-0 overflow-hidden"
-      style={{ background: "linear-gradient(180deg, #2D0566 0%, #7B3FC8 100%)" }}
-    >
-      {dots.map((d, i) => (
-        <div
-          key={i}
-          className="absolute rounded-full bg-white"
-          style={{
-            left: d.x,
-            top: d.y,
-            width: i % 3 === 0 ? 3 : 2,
-            height: i % 3 === 0 ? 3 : 2,
-            opacity: 0.65 + (i % 3) * 0.1,
-          }}
-        />
-      ))}
-      <div
-        className="absolute rounded-full"
-        style={{
-          width: 38,
-          height: 38,
-          left: "62%",
-          top: "38%",
-          transform: "translate(-50%, -50%)",
-          background: "radial-gradient(circle at 35% 35%, #E0B0FF, #8040C0)",
-          boxShadow: "0 0 14px 4px rgba(180,100,255,0.4)",
-        }}
-      />
-      <div
-        className="absolute rounded-full bg-white"
-        style={{
-          width: 22,
-          height: 22,
-          left: "22%",
-          top: "26%",
-          transform: "translate(-50%, -50%)",
-          boxShadow: "0 0 10px 3px rgba(255,255,255,0.45)",
-        }}
-      />
-    </div>
-  );
-}
-
-function ThemeThumbnail({ theme }: { theme: string }) {
-  if (theme === "forest") return <TreeThumbnail />;
-  if (theme === "night")  return <StarThumbnail />;
-  return null;
-}
 
 function TeamCard({
   team,
@@ -124,8 +42,8 @@ function TeamCard({
     >
       {/* 썸네일 영역 */}
       <div className="relative overflow-hidden" style={{ height: 130, background: color.illus }}>
-        {(team.theme || team.score > 0 || team.tree_count > 0) && (
-          <ThemeThumbnail theme={team.theme ?? "forest"} />
+        {team.theme && (
+          <img src={`/assets/${team.theme}/bg.png`} alt="" className="absolute inset-0 w-full h-full object-cover" />
         )}
         {isMyTeam && (
           <span

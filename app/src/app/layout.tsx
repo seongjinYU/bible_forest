@@ -46,8 +46,8 @@ export default async function RootLayout({
 
   return (
     <html lang="ko" className={`${notoSansKR.variable} h-full`}>
-      <body className="min-h-full bg-gray-100 flex flex-col items-center">
-        <div className="w-full max-w-[390px] min-h-dvh bg-white flex flex-col relative overflow-x-hidden">
+      <body className="h-full">
+        <div className="w-full h-full bg-white flex flex-col relative overflow-hidden" style={{ overscrollBehavior: "none" }}>
           <ThemeProvider theme={theme}>{children}</ThemeProvider>
         </div>
       </body>
