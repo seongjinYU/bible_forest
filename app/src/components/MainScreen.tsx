@@ -13,10 +13,17 @@ interface Stats {
   participants: number;
 }
 
+interface PlantedTree {
+  species: string;
+  x: number;
+  y: number;
+}
+
 interface MainScreenProps {
   name: string;
   team: string;
   stats: Stats;
+  plantedTrees: PlantedTree[];
 }
 
 const INFO_ITEMS = [
@@ -36,7 +43,7 @@ const INFO_ITEMS = [
 
 type ToastState = { message: string; action?: { label: string; onClick: () => void } } | null;
 
-export default function MainScreen({ name, team, stats }: MainScreenProps) {
+export default function MainScreen({ name, team, stats, plantedTrees }: MainScreenProps) {
   const router = useRouter();
   const theme = useTheme();
   const [helpOpen, setHelpOpen] = useState(false);
@@ -111,6 +118,27 @@ export default function MainScreen({ name, team, stats }: MainScreenProps) {
       {/* 전체화면 배경 */}
       <div className="absolute inset-0">
         <img src={`/assets/${theme}/bg.png`} alt="" className="w-full h-full object-cover" />
+      </div>
+
+      {/* 배치된 나무 레이어 */}
+      <div className="absolute inset-0 z-[1] pointer-events-none">
+        {plantedTrees.map((tree, i) => {
+          const num = Number(tree.species);
+          if (isNaN(num) || num <= 0) return null;
+          return (
+            <img
+              key={i}
+              src={`/assets/${theme}/${num}.png`}
+              alt=""
+              className="absolute w-12 h-12 object-contain"
+              style={{
+                left: `${tree.x}%`,
+                top: `${tree.y}%`,
+                transform: "translate(-50%, -90%)",
+              }}
+            />
+          );
+        })}
       </div>
 
       {/* 콘텐츠 레이어 */}

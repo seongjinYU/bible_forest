@@ -9,9 +9,14 @@ export default async function Home() {
 
   const supabase = createSupabaseServerClient();
 
-  const [teamRes, usersRes] = await Promise.all([
+  const [teamRes, usersRes, plantedRes] = await Promise.all([
     supabase.from("teams").select("name").eq("id", user.team_id).single(),
     supabase.from("users").select("trees(points), bible_progress(count)").eq("team_id", user.team_id),
+    supabase
+      .from("trees")
+      .select("species, x, y")
+      .eq("team_id", user.team_id)
+      .eq("is_planted", true),
   ]);
 
   const teamData = teamRes.data as { name: string } | null;
@@ -25,11 +30,14 @@ export default async function Home() {
     participants: usersData.length,
   };
 
+  const plantedTrees = (plantedRes.data ?? []) as { species: string; x: number; y: number }[];
+
   return (
     <MainScreen
       name={user.nickname}
       team={teamData?.name ?? ""}
       stats={stats}
+      plantedTrees={plantedTrees}
     />
   );
 }

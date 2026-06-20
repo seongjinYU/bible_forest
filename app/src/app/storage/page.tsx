@@ -116,9 +116,12 @@ export default async function StoragePage() {
                         배치완료
                       </button>
                     ) : (
-                      <button className="shrink-0 h-[36px] px-4 rounded-full border border-[#222222] text-[#222222] text-[14px] font-pretendard">
+                      <Link
+                        href={`/place-tree?tree_id=${tree.id}&species=${tree.species}`}
+                        className="shrink-0 h-[36px] px-4 rounded-full border border-[#222222] text-[#222222] text-[14px] font-pretendard flex items-center"
+                      >
                         배치하기
-                      </button>
+                      </Link>
                     )}
                   </li>
                 );
