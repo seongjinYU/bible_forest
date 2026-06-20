@@ -1,24 +1,26 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Fragment, Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
+
+const STEPS = ["팀선택", "닉네임", "테마선택"] as const;
 
 const THEMES = [
   {
     id: "forest" as const,
     image: "/assets/forest/theme.png",
-    description: "저 높이 솟은 산이\n되기보다 여기\n오름직한 ..더보기",
+    label: "말씀의 숲",
   },
   {
     id: "night" as const,
     image: "/assets/night/theme.png",
-    description: "하늘에\n저 별들처럼",
+    label: "빛의 하늘",
   },
   {
     id: "ocean" as const,
     image: "/assets/ocean/theme.png",
-    description: "물이\n바다 덮음 같이",
+    label: "생명의 바다",
   },
 ];
 
@@ -84,12 +86,48 @@ function SelectThemeContent() {
 
       <div className="flex-1 flex flex-col justify-between px-5 pb-safe">
         <div className="flex flex-col gap-8 pt-4">
-          <h1 className="text-[30px] font-bold leading-[100%] tracking-[-3%] text-[#222222] font-noto text-center">
-            테마 선택
-          </h1>
-          <p className="text-[18px] font-normal leading-[24px] tracking-[-3%] text-[#222222] text-center font-noto">
-            팀에서 사용할 테마를 선택해 주세요!
-          </p>
+          <div className="flex flex-col items-center gap-4">
+            <h1 className="text-[30px] font-bold leading-[100%] tracking-[-3%] text-[#222222] font-noto text-center">
+              테마 선택
+            </h1>
+            <div className="flex items-start">
+              {STEPS.map((label, i) => {
+                const isActive = i === 2;
+                return (
+                  <Fragment key={i}>
+                    {i > 0 && (
+                      <div className="w-[59px] h-px bg-[#DBEDED] mt-[10px] shrink-0" />
+                    )}
+                    <div className="w-[51px] flex flex-col items-center gap-4">
+                      <div className={cn(
+                        "w-5 h-5 rounded-full flex items-center justify-center",
+                        isActive ? "bg-[#19CDCD]" : "bg-white border border-[#7BDBDB]"
+                      )}>
+                        <div className={cn(
+                          "w-1 h-1 rounded-full",
+                          isActive ? "bg-white" : "bg-[#7BDBDB]"
+                        )} />
+                      </div>
+                      <span className={cn(
+                        "text-[14px] font-normal leading-[100%] tracking-[-3%] font-noto",
+                        isActive ? "text-[#222222]" : "text-[#AAAAAA]"
+                      )}>
+                        {label}
+                      </span>
+                    </div>
+                  </Fragment>
+                );
+              })}
+            </div>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-[18px] font-normal leading-[24px] tracking-[-3%] text-[#222222] text-center font-noto">
+              팀에서 사용할 테마를 선택해 주세요!
+            </p>
+            <p className="text-[14px] font-medium text-[#F32F15] text-center font-noto">
+              한 번 선택하면 변경할 수 없습니다!
+            </p>
+          </div>
 
           <div className="flex flex-row items-start justify-center gap-3">
             {THEMES.map((theme) => {
@@ -112,8 +150,8 @@ function SelectThemeContent() {
                       className="w-full h-full rounded-full object-cover"
                     />
                   </div>
-                  <p className="text-[13px] text-center text-[#333333] font-noto leading-[1.6] whitespace-pre-line">
-                    {theme.description}
+                  <p className="text-[13px] text-center text-[#333333] font-noto leading-[1.6]">
+                    {theme.label}
                   </p>
                 </button>
               );

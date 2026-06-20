@@ -25,16 +25,9 @@ function formatChapters(chapters: number[]): string {
   return ranges.join(", ") + "장";
 }
 
-function lerpColor(t: number) {
-  const r = Math.round(15 + 4 * t);
-  const g = Math.round(200 - 11 * t);
-  const b = Math.round(184 - 57 * t);
-  return `rgb(${r},${g},${b})`;
-}
 
-function buildPillMap(sel: Set<number>): Map<number, { idx: number; len: number }> {
+function buildPillGroups(sel: Set<number>): number[][] {
   const sorted = Array.from(sel).sort((a, b) => a - b);
-  const map = new Map<number, { idx: number; len: number }>();
   const groups: number[][] = [];
   let cur: number[] = [];
   for (const ch of sorted) {
@@ -49,8 +42,7 @@ function buildPillMap(sel: Set<number>): Map<number, { idx: number; len: number 
     }
   }
   if (cur.length > 0) groups.push(cur);
-  for (const g of groups) g.forEach((ch, i) => map.set(ch, { idx: i, len: g.length }));
-  return map;
+  return groups;
 }
 
 type BookType = (typeof NT_BOOKS)[number];
@@ -195,39 +187,64 @@ export default function ReadingClient({
 
       <div className="flex-1 overflow-y-auto px-5">
         {(() => {
-          const pillMap = buildPillMap(selected);
+          const groups = buildPillGroups(selected);
+          const pillGroupStarts = new Map<number, number[]>();
+          const pillNonFirsts = new Set<number>();
+          for (const g of groups) {
+            if (g.length > 1) {
+              pillGroupStarts.set(g[0], g);
+              for (let i = 1; i < g.length; i++) pillNonFirsts.add(g[i]);
+            }
+          }
+
           return (
             <div className="grid grid-cols-6">
               {Array.from({ length: selectedBook.chapters }, (_, i) => i + 1).map((ch) => {
-                const colIndex = (ch - 1) % COLS;
+                if (pillNonFirsts.has(ch)) return null;
+
+                const pillGroup = pillGroupStarts.get(ch);
+                if (pillGroup) {
+                  return (
+                    <div
+                      key={ch}
+                      style={{ gridColumn: `span ${pillGroup.length}` }}
+                      className="h-12 flex items-center"
+                    >
+                      <div
+                        style={{ background: GRADIENT }}
+                        className="flex-1 h-10 rounded-full flex items-center overflow-hidden"
+                      >
+                        {pillGroup.map((c) => (
+                          <button
+                            key={c}
+                            onClick={() => toggleChapter(c)}
+                            className="flex-1 h-full flex items-center justify-center text-[14px] font-medium font-pretendard text-white select-none"
+                          >
+                            {c}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
                 const isRead = alreadyRead.has(ch);
                 const isSel = selected.has(ch);
-                const hasLeft = isSel && selected.has(ch - 1) && colIndex !== 0;
-                const hasRight = isSel && selected.has(ch + 1) && colIndex !== COLS - 1;
-                let bg: string | undefined;
-                if (isSel) {
-                  const p = pillMap.get(ch);
-                  if (p && p.len > 1) {
-                    const c1 = lerpColor(p.idx / p.len);
-                    const c2 = lerpColor((p.idx + 1) / p.len);
-                    bg = `linear-gradient(90deg, ${c1} 0%, ${c2} 100%)`;
-                  } else bg = GRADIENT;
-                } else if (isRead) bg = GRADIENT;
+                const bgStyle: React.CSSProperties | undefined =
+                  isSel || isRead ? { background: GRADIENT } : undefined;
+
                 return (
                   <div key={ch} className="h-12 flex items-center">
                     <button
                       onClick={() => toggleChapter(ch)}
                       disabled={isRead}
                       className={cn(
-                        "h-10 flex items-center justify-center text-[14px] font-medium font-pretendard transition-colors select-none",
-                        !isSel && !isRead && "w-10 rounded-full border border-[#E0E0E0] bg-white text-[#AAAAAA] mx-auto",
-                        (isSel || isRead) && !hasLeft && !hasRight && "w-10 rounded-full mx-auto text-white",
-                        isSel && !hasLeft && hasRight && "w-full rounded-l-full pl-[10px] text-white",
-                        isSel && hasLeft && !hasRight && "w-full rounded-r-full pr-[10px] text-white",
-                        isSel && hasLeft && hasRight && "w-full text-white",
+                        "h-10 w-10 flex items-center justify-center text-[14px] font-medium font-pretendard transition-colors select-none rounded-full mx-auto",
+                        !isSel && !isRead && "border border-[#E0E0E0] bg-white text-[#AAAAAA]",
+                        (isSel || isRead) && "text-white",
                         isRead && "opacity-50",
                       )}
-                      style={bg ? { background: bg } : undefined}
+                      style={bgStyle}
                     >
                       {ch}
                     </button>
