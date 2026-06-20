@@ -18,7 +18,8 @@ const TEAM_COLORS: Record<string, TeamColor> = {
 
 const DEFAULT_COLOR: TeamColor = { primary: "#66BB6A", illus: "#F1FBF1", border: "#C8E6C9" };
 
-type TeamStat = { id: string; name: string; score: number; tree_count: number; theme: string | null };
+type PlantedTree = { species: string; x: number; y: number };
+type TeamStat = { id: string; name: string; score: number; tree_count: number; theme: string | null; plantedTrees: PlantedTree[] };
 
 function toSingle<T>(val: T | T[] | null | undefined): T | null {
   if (val === null || val === undefined) return null;
@@ -35,7 +36,7 @@ export default async function ForestsPage() {
 
   const [teamsRes, treesRes, usersRes, activityRes] = await Promise.all([
     supabase.from("teams").select("id, name, theme"),
-    supabase.from("trees").select("team_id"),
+    supabase.from("trees").select("team_id, species, x, y").eq("is_planted", true),
     supabase.from("users").select("team_id, bible_progress(count)"),
     supabase
       .from("bible_progress")
@@ -54,7 +55,7 @@ export default async function ForestsPage() {
   } else {
     allTeams = (teamsRes.data ?? []) as TeamRow[];
   }
-  const allTrees = (treesRes.data ?? []) as { team_id: string }[];
+  const allTrees = (treesRes.data ?? []) as { team_id: string; species: string; x: number; y: number }[];
   const allUsers = (usersRes.data ?? []) as UserRow[];
 
   // 최근 활동 파싱 (users join은 객체/배열 양쪽 대응)
@@ -76,8 +77,10 @@ export default async function ForestsPage() {
   const teamStats: TeamStat[] = allTeams.map((team) => {
     const teamUsers = allUsers.filter((u) => u.team_id === team.id);
     const score = teamUsers.reduce((sum, u) => sum + (u.bible_progress[0]?.count ?? 0), 0);
-    const tree_count = allTrees.filter((t) => t.team_id === team.id).length;
-    return { id: team.id, name: team.name, score, tree_count, theme: team.theme ?? null };
+    const teamTrees = allTrees.filter((t) => t.team_id === team.id);
+    const tree_count = teamTrees.length;
+    const plantedTrees = teamTrees.map(({ species, x, y }) => ({ species, x, y }));
+    return { id: team.id, name: team.name, score, tree_count, theme: team.theme ?? null, plantedTrees };
   });
 
   const topTeam = [...teamStats].sort((a, b) => b.score - a.score)[0] ?? null;

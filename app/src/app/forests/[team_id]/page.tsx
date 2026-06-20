@@ -2,13 +2,13 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
+import { THEMES } from "@/constants/themes";
+import type { ThemeKey } from "@/constants/themes";
 
-type ThemeKey = "forest" | "night" | "ocean";
-
-const THEME_LABELS: Record<ThemeKey, string> = {
-  forest: "숲",
-  night:  "밤하늘",
-  ocean:  "바다",
+const SUBJECT_PARTICLE: Record<ThemeKey, string> = {
+  forest: "은",
+  night:  "은",
+  ocean:  "는",
 };
 
 export default async function ForestDetailPage({
@@ -27,7 +27,7 @@ export default async function ForestDetailPage({
   const [teamRes, usersRes, treesRes] = await Promise.all([
     supabase.from("teams").select("id, name, theme").eq("id", team_id).maybeSingle(),
     supabase.from("users").select("bible_progress(count)").eq("team_id", team_id),
-    supabase.from("trees").select("id").eq("team_id", team_id),
+    supabase.from("trees").select("species, x, y").eq("team_id", team_id).eq("is_planted", true),
   ]);
 
   if (!teamRes.data) redirect("/forests");
@@ -41,16 +41,35 @@ export default async function ForestDetailPage({
   const users = (usersRes.data ?? []) as UserRow[];
   const participants = users.length;
   const score = users.reduce((sum, u) => sum + (u.bible_progress[0]?.count ?? 0), 0);
-  const treeCount = (treesRes.data ?? []).length;
+  const plantedTrees = (treesRes.data ?? []) as { species: string; x: number; y: number }[];
+  const treeCount = plantedTrees.length;
 
-  const themeLabel = THEME_LABELS[theme];
+  const currentTheme = THEMES[theme];
   const isDarkBg = theme !== "forest";
+  const particle = SUBJECT_PARTICLE[theme];
 
   return (
     <div className="relative min-h-dvh overflow-hidden">
       {/* 전체화면 배경 */}
       <div className="absolute inset-0">
         <img src={`/assets/${theme}/bg.png`} alt="" className="w-full h-full object-cover" />
+      </div>
+
+      {/* 배치된 아이템 레이어 */}
+      <div className="absolute inset-0 z-[1] pointer-events-none">
+        {plantedTrees.map((tree, i) => {
+          const num = Number(tree.species);
+          if (isNaN(num) || num <= 0) return null;
+          return (
+            <img
+              key={i}
+              src={`/assets/${theme}/${num}.png`}
+              alt=""
+              className="absolute w-12 h-12 object-contain"
+              style={{ left: `${tree.x}%`, top: `${tree.y}%`, transform: "translate(-50%, -90%)" }}
+            />
+          );
+        })}
       </div>
 
       {/* 콘텐츠 */}
@@ -62,14 +81,14 @@ export default async function ForestDetailPage({
           {/* 통계 오버레이 */}
           <div className="absolute bottom-0 left-0 right-0 px-6 pb-5">
             <p className={`text-[15px] font-pretendard mb-0.5 ${isDarkBg ? "text-white/80" : "text-[#555555]"}`}>
-              현재 {team.name}의 {themeLabel}은?
+              현재 {team.name}의 {currentTheme.label}{particle}?
             </p>
             <div className="flex items-center gap-[3px] mb-1">
               <span className={`text-[24px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
                 {treeCount}
               </span>
               <span className={`text-[24px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
-                그루
+                {currentTheme.unit}
               </span>
               <div className={`w-1 h-1 rounded-full mx-[5px] ${isDarkBg ? "bg-white/60" : "bg-[#2E9200]"}`} />
               <span className={`text-[24px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
@@ -103,7 +122,7 @@ export default async function ForestDetailPage({
                 : "bg-white/80 backdrop-blur-sm border border-white/60 text-[#222222]"
             }`}
           >
-            다른 숲 구경하러 가기
+            {currentTheme.forumsLabel}
           </Link>
         </div>
       </div>

@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 type TeamColor = { primary: string; illus: string; border: string };
-type TeamStat = { id: string; name: string; score: number; tree_count: number; theme: string | null };
+type PlantedTree = { species: string; x: number; y: number };
+type TeamStat = { id: string; name: string; score: number; tree_count: number; theme: string | null; plantedTrees: PlantedTree[] };
 
 const TEAM_COLORS: Record<string, TeamColor> = {
   "1팀": { primary: "#FF8A80", illus: "#FFF3F2", border: "#FFCDD2" },
@@ -45,6 +46,19 @@ function TeamCard({
         {team.theme && (
           <img src={`/assets/${team.theme}/bg.png`} alt="" className="absolute inset-0 w-full h-full object-cover" />
         )}
+        {team.theme && team.plantedTrees.map((tree, i) => {
+          const num = Number(tree.species);
+          if (isNaN(num) || num <= 0) return null;
+          return (
+            <img
+              key={i}
+              src={`/assets/${team.theme}/${num}.png`}
+              alt=""
+              className="absolute w-7 h-7 object-contain pointer-events-none"
+              style={{ left: `${tree.x}%`, top: `${tree.y}%`, transform: "translate(-50%, -90%)" }}
+            />
+          );
+        })}
         {isMyTeam && (
           <span
             className="absolute z-10 top-2.5 left-2.5 px-2 py-0.5 rounded-full text-[10px] font-pretendard font-bold text-white leading-none"
