@@ -6,6 +6,8 @@ import { ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NT_BOOKS } from "@/constants/bible";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useTheme } from "@/context/ThemeContext";
+import { ELEMENT_NAMES } from "@/constants/elements";
 
 const COLS = 6;
 const GRADIENT = "linear-gradient(90deg, #0FC8B8 0%, #13BD7F 100%)";
@@ -70,6 +72,7 @@ export default function ReadingClient({
   initialProgress: { book_name: string; chapter: number }[];
 }) {
   const router = useRouter();
+  const theme = useTheme();
   const [selectedBook, setSelectedBook] = useState<BookType>(NT_BOOKS[0]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -79,6 +82,7 @@ export default function ReadingClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showEarned, setShowEarned] = useState(false);
+  const [earnedSpecies, setEarnedSpecies] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
 
   const alreadyRead = allProgress.get(selectedBook.name) ?? new Set<number>();
@@ -125,8 +129,10 @@ export default function ReadingClient({
       return next;
     });
     setSelected(new Set());
-    if (data.newly_earned?.length > 0) setShowEarned(true);
-    else router.push("/");
+    if (data.newly_earned?.length > 0) {
+      setEarnedSpecies(data.newly_earned[0].species);
+      setShowEarned(true);
+    } else router.push("/");
   }
 
   function selectBook(book: BookType) {
@@ -298,15 +304,35 @@ export default function ReadingClient({
           <div className="px-5 pb-6 flex flex-col items-center gap-5">
             <div className="flex flex-col items-center gap-1">
               <DialogTitle className="text-[20px] font-bold text-[#222222] text-center font-noto leading-snug">
-                와! 새로운 나무를 획득했어요!
+                와! 새로운 요소를 획득했어요!
               </DialogTitle>
               <p className="text-[14px] text-[#888888] text-center font-noto">
-                [내 나무 보기]에서 확인하고 나무를 심어보세요!
+                [내 보관함]에서 확인하고 요소를 심어보세요!
               </p>
             </div>
-            <div className="w-[120px] h-[120px] rounded-full bg-[#FFF0EC] flex items-center justify-center">
-              <span className="text-[56px]">🌳</span>
-            </div>
+            {(() => {
+              const speciesNum = Number(earnedSpecies);
+              const isNumbered = !isNaN(speciesNum) && speciesNum > 0;
+              const name = isNumbered ? (ELEMENT_NAMES[theme]?.[speciesNum] ?? "") : "";
+              return (
+                <>
+                  <div className="w-[120px] h-[120px] rounded-full bg-[#F5F5F5] flex items-center justify-center">
+                    {isNumbered ? (
+                      <img
+                        src={`/assets/${theme}/${speciesNum}.png`}
+                        alt={name}
+                        className="w-[80px] h-[80px] object-contain"
+                      />
+                    ) : (
+                      <span className="text-[56px]">🌳</span>
+                    )}
+                  </div>
+                  {name && (
+                    <p className="text-[15px] font-pretendard text-[#222222] -mt-2">{name}</p>
+                  )}
+                </>
+              );
+            })()}
             <button onClick={() => { setShowEarned(false); router.push("/"); }} className="w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto">
               확인
             </button>

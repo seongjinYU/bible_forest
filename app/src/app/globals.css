@@ -6,18 +6,16 @@
 @custom-variant dark (&:is(.dark *));
 
 /* 피그마 디자인 토큰 */
+@theme {
+  --color-primary:          #31C678;
+  --color-primary-fg:       #FFFFFF;
+  --color-primary-gradient: linear-gradient(90deg, #0FC8B8 0%, #13BD7F 100%);
+  --color-theme-forest:     #2E9200;
+  --color-theme-night:      #DE72E9;
+  --color-theme-ocean:      #6139FF;
+}
+
 @theme inline {
-  --color-forest-primary:     #31C678;
-  --color-forest-primary-fg:  #FFFFFF;
-  --color-forest-text:        #222222;
-  --color-forest-muted:       #666666;
-  --color-forest-hint:        #999999;
-  --color-forest-border:      #DDDDDD;
-  --color-forest-bg-light:    #F5F5F5;
-  --color-forest-selected-bg: #F6FEF8;
-  --color-forest-selected-bd: #46AE78;
-  --color-forest-purple:      #660092;
-  --color-forest-error:       #F32F15;
   --font-noto: var(--font-noto-sans-kr);
   --font-pretendard: 'Pretendard Variable', 'Pretendard', sans-serif;
 }

@@ -10,6 +10,8 @@ import { getSessionUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { NT_BOOKS, TOTAL_NT_CHAPTERS } from "@/constants/bible";
 import { pickRandomSpecies, SPECIAL_SPECIES, REWARD } from "@/constants/trees";
+import { THEMES } from "@/constants/themes";
+import type { ThemeKey } from "@/constants/themes";
 
 export async function GET() {
   const user = await getSessionUser();
@@ -170,6 +172,14 @@ export async function PATCH(request: Request) {
   const total = count ?? 0;
 
   // 8) 일반 나무 지급 — 단조 증가(A1). 배치 전체 반영 후 "한 번에" 정산
+  const { data: teamData } = await supabase
+    .from("teams")
+    .select("theme")
+    .eq("id", user.team_id)
+    .single();
+  const rawTheme = (teamData as { theme?: string | null } | null)?.theme;
+  const theme: ThemeKey = rawTheme && rawTheme in THEMES ? (rawTheme as ThemeKey) : "forest";
+
   let earned = user.trees_earned;
   let special = user.special_tree_earned;
   const newlyEarned: EarnedTree[] = [];
@@ -180,7 +190,7 @@ export async function PATCH(request: Request) {
       user_id: user.id,
       team_id: user.team_id,
       tree_type: "normal",
-      species: pickRandomSpecies(),
+      species: pickRandomSpecies(theme),
       points: REWARD.NORMAL_TREE_POINTS,
     }));
     const { data: inserted, error: iErr } = await supabase

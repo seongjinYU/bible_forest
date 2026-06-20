@@ -155,6 +155,7 @@ export default function MainScreen({ name, team, stats }: MainScreenProps) {
             </p>
           </div>
           <button
+            onClick={() => router.push("/storage")}
             className={`shrink-0 h-[34px] px-[14px] rounded-[20px] border text-[14px] font-pretendard ${
               isDarkBg ? "border-white text-white" : "border-[#222222] text-[#222222]"
             }`}
@@ -191,7 +192,9 @@ export default function MainScreen({ name, team, stats }: MainScreenProps) {
               </div>
               <button
                 onClick={() => router.push("/reading")}
-                className="h-[40px] px-5 rounded-full bg-[#31C678] text-white text-[15px] font-semibold font-pretendard"
+                className={`h-[40px] px-5 rounded-full text-white text-[15px] font-semibold font-pretendard ${
+                  theme === "night" ? "bg-theme-night" : theme === "ocean" ? "bg-theme-ocean" : "bg-theme-forest"
+                }`}
               >
                 인증하기
               </button>
