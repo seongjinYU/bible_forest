@@ -17,6 +17,7 @@ const notoSansKR = Noto_Sans_KR({
 export const metadata: Metadata = {
   title: "팀 숲 성경읽기",
   description: "함께 심고 함께 자라는 팀 숲 성경읽기 챌린지",
+  icons: { icon: "/assets/forest/9.png" },
 };
 
 export const viewport: Viewport = {

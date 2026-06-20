@@ -69,10 +69,8 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
     try {
       setToast(null);
       layer.style.visibility = "hidden";
-      await new Promise<void>((res) => requestAnimationFrame(() => requestAnimationFrame(() => res())));
 
-      // 모바일에서 html-to-image가 <img> src를 캔버스에 못 그리는 문제 방지:
-      // 캡처 전 모든 이미지를 data URL로 변환해 직접 주입
+      // iOS Safari는 img.src 교체 후 onload가 완료돼야 캔버스에 그릴 수 있음
       const allImgs = Array.from(screenRef.current.querySelectorAll("img")) as HTMLImageElement[];
       const originalSrcs = allImgs.map((img) => img.src);
       await Promise.all(
@@ -80,17 +78,27 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
           try {
             const resp = await fetch(originalSrcs[i]);
             const imgBlob = await resp.blob();
-            await new Promise<void>((res, rej) => {
+            const dataUrl = await new Promise<string>((res, rej) => {
               const reader = new FileReader();
-              reader.onload = () => { img.src = reader.result as string; res(); };
+              reader.onload = () => res(reader.result as string);
               reader.onerror = rej;
               reader.readAsDataURL(imgBlob);
+            });
+            await new Promise<void>((res) => {
+              img.onload = () => res();
+              img.onerror = () => res();
+              img.src = dataUrl;
+              // 혹시 이미 로드된 경우(캐시) 즉시 resolve
+              if (img.complete && img.naturalWidth > 0) res();
             });
           } catch {
             // 실패 시 원본 src 유지
           }
         })
       );
+
+      // 모든 이미지 로드 완료 후 렌더 사이클 2회 대기
+      await new Promise<void>((res) => requestAnimationFrame(() => requestAnimationFrame(() => res())));
 
       const blob = await toBlob(screenRef.current, {
         pixelRatio: window.devicePixelRatio || 2,
