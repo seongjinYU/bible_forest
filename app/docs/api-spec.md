@@ -44,54 +44,67 @@
 
 ---
 
-### 1-2. `PATCH /api/v1/bible/progress` — 권(book) 단위 replace
-한 권의 체크 목록을 통째로 교체한다. 나무 지급/회수까지 처리. (로직은 백엔드에서)
+### 1-2. `PATCH /api/v1/bible/progress` — 여러 권(book) 단위 replace
+여러 권의 체크 목록을 한 번에 통째로 교체한다. 나무 지급/회수는 **전체 반영 후 한 번에** 정산. (로직은 백엔드)
 
-**Request Body**
+**Request Body — 다권**
+```json
+{
+  "books": [
+    { "book_name": "마태복음", "chapters": [3] },
+    { "book_name": "마가복음", "chapters": [1, 2, 3, 4, 5] }
+  ]
+}
+```
+**단권(하위호환)**
 ```json
 { "book_name": "마태복음", "chapters": [1, 2, 3, 5] }
 ```
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `book_name` | string | 신약 책 이름 (`NT_BOOKS` 중 하나) |
-| `chapters` | int[] | 그 권에서 **현재 체크된 장 전체 목록** (빈 배열 `[]` 이면 그 권 전체 해제) |
+| `books` | array | `{ book_name, chapters }` 목록 (여러 권 동시) |
+| `books[].book_name` | string | 신약 책 이름 (`NT_BOOKS` 중 하나) |
+| `books[].chapters` | int[] | 그 권의 **현재 체크된 장 전체 목록** (빈 배열이면 그 권 전체 해제) |
+
+> 단권 형식 `{ book_name, chapters }` 도 허용 — 내부에서 `books` 길이 1로 처리.
 
 **처리 (BE)**
 1. 활성 챌린지 기간 검증 (C1) → 기간 밖이면 `403`
-2. `book_name`/`chapters` 유효성 → 불일치 시 `400`
-3. 그 권의 `bible_progress` **전부 삭제 → 새 목록 insert** (bulk replace)
-4. 총 장수 재계산
-5. `floor(총장수/10)` 기준 일반 나무 **지급 또는 회수** (A1 변경 — 회수 허용)
+2. 각 권/장 유효성 → 불일치 시 `400`
+3. 각 권의 `bible_progress` **삭제 → 새 목록 insert** (권별 bulk replace)
+4. 총 장수 재계산 (전체 반영 후 1회)
+5. `floor(총장수/10)` 기준 일반 나무 **지급 또는 회수** — **한 번만** 정산 (A1 변경: 회수 허용)
 6. 260장 기준 특별 나무 **지급 또는 회수**
 
 **Response 200**
 ```json
 {
-  "book_name": "마태복음",
-  "checked_chapters": [1, 2, 3, 5],
-  "total_chapters": 20,
+  "books": [
+    { "book_name": "마태복음", "chapters": [3] },
+    { "book_name": "마가복음", "chapters": [1, 2, 3, 4, 5] }
+  ],
+  "total_chapters": 6,
   "total_nt_chapters": 260,
-  "trees_earned": 2,
-  "next_tree_remaining": 10,
+  "trees_earned": 0,
+  "next_tree_remaining": 4,
   "completed_one_bible": false,
   "special_tree_earned": false,
   "special_tree_newly_earned": false,
-  "newly_earned": [
-    { "tree_id": "uuid", "tree_type": "normal", "species": "12", "points": 1 }
-  ],
+  "newly_earned": [],
   "reclaimed_count": 0
 }
 ```
+- `books`: 실제 적용된 권/장 목록(정제·정렬됨).
 - `newly_earned`: 이번 요청으로 새로 획득한 나무(없으면 `[]`).
 - `reclaimed_count`: 이번 요청으로 **회수(삭제)된 나무 수**.
-- ⚠️ **A1 변경(회수 허용)**: 장수가 줄어 기준 미달이면 `obtained_at` **최신순으로 나무를 회수**(삭제). **배치된 나무·특별나무 포함**, `trees_earned`가 **감소할 수 있음**.
+- ⚠️ **A1 변경(회수 허용)**: 장수가 줄어 기준 미달이면 `obtained_at` **최신순으로 나무 회수**(배치된 나무·특별나무 포함). `trees_earned` **감소 가능**.
 - `species`는 팀 테마에 따른 에셋 키(숫자 문자열). special은 `"special"`.
 
 **에러**
 | status | message 예시 | 조건 |
 |--------|-------------|------|
 | 400 | `"올바르지 않은 책 또는 장입니다."` | 책/장 범위 오류 |
-| 400 | `"올바르지 않은 요청입니다."` | 형식 오류 |
+| 400 | `"올바르지 않은 요청입니다."` / `"체크할 권이 없습니다."` | 형식/빈 요청 |
 | 401 | `"로그인이 필요합니다."` | 미로그인 |
 | 403 | `"챌린지 기간이 아닙니다."` | 기간 밖 |
 
@@ -151,7 +164,7 @@
 - 이미 배치된(`is_planted=true`) 나무면 `400`
 - `0 <= x <= 100`, `0 <= y <= 100` 아니면 `400`
 
-**처리**: `is_planted=true`, `x`, `y`, `planted_at=now()`, `z_index=nextval('tree_z_seq')` 설정.
+**처리**: `is_planted=true`, `x`, `y`, `planted_at=now()`, `z_index=(팀 내 max(z_index)+1)` 설정.
 
 **Response 201**
 ```json
@@ -408,7 +421,7 @@
 | Method | Path | 인증 | 설명 |
 |--------|------|------|------|
 | GET | `/api/v1/bible/progress` | user | 체크 현황 + 요약 |
-| PATCH | `/api/v1/bible/progress` | user | 장 체크/해제 + 나무 지급(트랜잭션) |
+| PATCH | `/api/v1/bible/progress` | user | 여러 권 replace + 나무 지급/회수 |
 | GET | `/api/v1/bible/status` | user | 요약만 경량 조회 |
 | GET | `/api/v1/trees/inventory` | user | 미배치 나무 목록 |
 | POST | `/api/v1/trees/place` | user | 나무 배치(1회성) |
@@ -485,7 +498,7 @@ challenges (활성 1개) ── 읽기 체크 기간 제약에만 사용
 | y | numeric(5,2) | null | 세로 % 0~100 (B1) |
 | obtained_at | timestamptz | default `now()` | 획득 시각 |
 | planted_at | timestamptz | null | 배치 시각 |
-| z_index | bigint | null | 배치 시 시퀀스(`tree_z_seq`)로 부여 — 렌더 순서. 미배치는 null |
+| z_index | bigint | null | 배치 시 **팀별 max(z_index)+1**로 부여 — 렌더 순서. 미배치는 null |
 
 인덱스: `idx_trees_user (user_id)`, `idx_trees_team_planted (team_id, is_planted)`
 
@@ -567,12 +580,8 @@ create table if not exists challenges (
 -- (create table if not exists는 기존 테이블의 컬럼을 추가하지 않으므로 필수)
 alter table challenges add column if not exists is_active boolean not null default false;
 
--- 나무 렌더 순서(z_index): 배치 시점에 시퀀스로 순차 부여
--- (next_tree_z()는 시퀀스 값만 꺼내는 얇은 헬퍼 — 비즈니스 로직 아님)
-create sequence if not exists tree_z_seq;
+-- 나무 렌더 순서(z_index): 배치 시점에 백엔드가 "팀별 max(z_index)+1"로 부여 (시퀀스/함수 불필요)
 alter table trees add column if not exists z_index bigint;
-create or replace function next_tree_z() returns bigint
-language sql as $$ select nextval('tree_z_seq'); $$;
 ```
 **테스트 시드 (선택)** — 로컬 테스트용 고정 UUID 데이터. ⚠️ **운영 DB에는 넣지 말 것.**
 ```sql

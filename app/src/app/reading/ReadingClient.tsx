@@ -13,6 +13,7 @@ const COLS = 6;
 const GRADIENT = "linear-gradient(90deg, #0FC8B8 0%, #13BD7F 100%)";
 
 function formatChapters(chapters: number[]): string {
+  if (chapters.length === 0) return "없음";
   const sorted = [...chapters].sort((a, b) => a - b);
   const ranges: string[] = [];
   let i = 0;
@@ -24,7 +25,6 @@ function formatChapters(chapters: number[]): string {
   }
   return ranges.join(", ") + "장";
 }
-
 
 function buildPillGroups(sel: Set<number>): number[][] {
   const sorted = Array.from(sel).sort((a, b) => a - b);
@@ -58,6 +58,12 @@ function buildProgressMap(
   return map;
 }
 
+function setEquals(a: Set<number>, b: Set<number>): boolean {
+  if (a.size !== b.size) return false;
+  for (const x of a) if (!b.has(x)) return false;
+  return true;
+}
+
 export default function ReadingClient({
   initialProgress,
 }: {
@@ -67,29 +73,60 @@ export default function ReadingClient({
   const theme = useTheme();
   const [selectedBook, setSelectedBook] = useState<BookType>(NT_BOOKS[0]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  // 서버에 저장된 상태(권별)
   const [allProgress, setAllProgress] = useState<Map<string, Set<number>>>(
     () => buildProgressMap(initialProgress),
   );
+  // 편집 중인 체크 상태(권별) — 여러 권을 넘나들며 누적, 완료 시 바뀐 권만 한 번에 저장
+  const [draftByBook, setDraftByBook] = useState<Map<string, Set<number>>>(() => {
+    const m = new Map<string, Set<number>>();
+    for (const { book_name, chapter } of initialProgress) {
+      if (!m.has(book_name)) m.set(book_name, new Set());
+      m.get(book_name)!.add(chapter);
+    }
+    return m;
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showEarned, setShowEarned] = useState(false);
   const [earnedSpecies, setEarnedSpecies] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const alreadyRead = allProgress.get(selectedBook.name) ?? new Set<number>();
+  // 현재 보고 있는 권의 draft
+  const draft = draftByBook.get(selectedBook.name) ?? new Set<number>();
+
+  // 저장본과 달라진 권 목록
+  const changedBooks = NT_BOOKS
+    .map((b) => b.name)
+    .filter((name) =>
+      !setEquals(
+        draftByBook.get(name) ?? new Set<number>(),
+        allProgress.get(name) ?? new Set<number>(),
+      ),
+    );
+  const dirty = changedBooks.length > 0;
 
   function toggleChapter(ch: number) {
-    if (alreadyRead.has(ch)) return;
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(ch)) next.delete(ch); else next.add(ch);
+    setDraftByBook((prev) => {
+      const next = new Map(prev);
+      const s = new Set(next.get(selectedBook.name) ?? []);
+      if (s.has(ch)) s.delete(ch);
+      else s.add(ch);
+      next.set(selectedBook.name, s);
+      return next;
+    });
+  }
+
+  function setCurrentBookDraft(chapters: Set<number>) {
+    setDraftByBook((prev) => {
+      const next = new Map(prev);
+      next.set(selectedBook.name, chapters);
       return next;
     });
   }
 
   function handleComplete() {
-    if (selected.size === 0) return;
+    if (!dirty) return;
     setErrorMsg("");
     setShowConfirm(true);
   }
@@ -97,14 +134,15 @@ export default function ReadingClient({
   async function handleConfirm() {
     setShowConfirm(false);
     setIsSubmitting(true);
-    const chapters = Array.from(selected).map((ch) => ({
-      book_name: selectedBook.name,
-      chapter: ch,
+    const books = changedBooks.map((name) => ({
+      book_name: name,
+      chapters: Array.from(draftByBook.get(name) ?? []).sort((a, b) => a - b),
     }));
     const res = await fetch("/api/v1/bible/progress", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ checked: true, chapters }),
+      // 여러 권을 한 번에 bulk replace
+      body: JSON.stringify({ books }),
     });
     setIsSubmitting(false);
     if (!res.ok) {
@@ -113,24 +151,26 @@ export default function ReadingClient({
       return;
     }
     const data = await res.json();
+    // 저장본을 draft로 갱신 (바뀐 권만)
     setAllProgress((prev) => {
       const next = new Map(prev);
-      const bookSet = new Set(next.get(selectedBook.name) ?? []);
-      for (const ch of selected) bookSet.add(ch);
-      next.set(selectedBook.name, bookSet);
+      for (const name of changedBooks) {
+        next.set(name, new Set(draftByBook.get(name) ?? []));
+      }
       return next;
     });
-    setSelected(new Set());
     if (data.newly_earned?.length > 0) {
       setEarnedSpecies(data.newly_earned[0].species);
       setShowEarned(true);
-    } else router.push("/");
+    } else {
+      router.push("/");
+    }
   }
 
   function selectBook(book: BookType) {
     setSelectedBook(book);
     setDropdownOpen(false);
-    setSelected(new Set());
+    // draft는 권별로 유지됨(초기화 안 함) → 여러 권 누적 선택 가능
   }
 
   return (
@@ -150,15 +190,14 @@ export default function ReadingClient({
         </button>
 
         {(() => {
-          const unread = Array.from({ length: selectedBook.chapters }, (_, i) => i + 1)
-            .filter((ch) => !alreadyRead.has(ch));
-          const allSelected = unread.length > 0 && unread.every((ch) => selected.has(ch));
+          const allOn = draft.size === selectedBook.chapters;
+          const allChapters = Array.from({ length: selectedBook.chapters }, (_, i) => i + 1);
           return (
             <button
-              onClick={() => setSelected(allSelected ? new Set() : new Set(unread))}
+              onClick={() => setCurrentBookDraft(allOn ? new Set() : new Set(allChapters))}
               className="text-[14px] font-pretendard text-[#0FC8B8]"
             >
-              {allSelected ? "전체 해제" : "전체 선택"}
+              {allOn ? "전체 해제" : "전체 선택"}
             </button>
           );
         })()}
@@ -166,20 +205,26 @@ export default function ReadingClient({
         {dropdownOpen && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(false)} />
-            <div className="absolute left-5 top-full mt-1 z-50 bg-white border border-[#EEEEEE] rounded-[12px] shadow-lg max-h-[280px] overflow-y-auto w-[180px]">
-              {NT_BOOKS.map((book) => (
-                <button
-                  key={book.name}
-                  onClick={() => selectBook(book)}
-                  className={cn(
-                    "w-full text-left px-4 py-3 text-[15px] font-noto border-b border-[#F5F5F5] last:border-0",
-                    selectedBook.name === book.name ? "font-semibold" : "text-[#222222]",
-                  )}
-                  style={selectedBook.name === book.name ? { color: "#0FC8B8" } : undefined}
-                >
-                  {book.name}
-                </button>
-              ))}
+            <div className="absolute left-5 top-full mt-1 z-50 bg-white border border-[#EEEEEE] rounded-[12px] shadow-lg max-h-[280px] overflow-y-auto w-[200px]">
+              {NT_BOOKS.map((book) => {
+                const cnt = (draftByBook.get(book.name) ?? new Set()).size;
+                return (
+                  <button
+                    key={book.name}
+                    onClick={() => selectBook(book)}
+                    className={cn(
+                      "w-full text-left px-4 py-3 text-[15px] font-noto border-b border-[#F5F5F5] last:border-0 flex items-center justify-between",
+                      selectedBook.name === book.name ? "font-semibold" : "text-[#222222]",
+                    )}
+                    style={selectedBook.name === book.name ? { color: "#0FC8B8" } : undefined}
+                  >
+                    <span>{book.name}</span>
+                    {cnt > 0 && (
+                      <span className="text-[12px] text-[#0FC8B8] font-pretendard">{cnt}</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </>
         )}
@@ -187,7 +232,7 @@ export default function ReadingClient({
 
       <div className="flex-1 overflow-y-auto px-5">
         {(() => {
-          const groups = buildPillGroups(selected);
+          const groups = buildPillGroups(draft);
           const pillGroupStarts = new Map<number, number[]>();
           const pillNonFirsts = new Set<number>();
           for (const g of groups) {
@@ -228,23 +273,17 @@ export default function ReadingClient({
                   );
                 }
 
-                const isRead = alreadyRead.has(ch);
-                const isSel = selected.has(ch);
-                const bgStyle: React.CSSProperties | undefined =
-                  isSel || isRead ? { background: GRADIENT } : undefined;
-
+                const isOn = draft.has(ch);
                 return (
                   <div key={ch} className="h-12 flex items-center">
                     <button
                       onClick={() => toggleChapter(ch)}
-                      disabled={isRead}
                       className={cn(
                         "h-10 w-10 flex items-center justify-center text-[14px] font-medium font-pretendard transition-colors select-none rounded-full mx-auto",
-                        !isSel && !isRead && "border border-[#E0E0E0] bg-white text-[#AAAAAA]",
-                        (isSel || isRead) && "text-white",
-                        isRead && "opacity-50",
+                        !isOn && "border border-[#E0E0E0] bg-white text-[#AAAAAA]",
+                        isOn && "text-white",
                       )}
-                      style={bgStyle}
+                      style={isOn ? { background: GRADIENT } : undefined}
                     >
                       {ch}
                     </button>
@@ -271,7 +310,7 @@ export default function ReadingClient({
         </button>
         <button
           onClick={handleComplete}
-          disabled={selected.size === 0 || isSubmitting}
+          disabled={!dirty || isSubmitting}
           className="flex-1 h-[54px] rounded-[8px] bg-[#31C678] text-white text-[17px] font-medium font-noto transition-opacity disabled:opacity-40"
         >
           {isSubmitting ? "저장 중..." : "완료"}
@@ -288,21 +327,21 @@ export default function ReadingClient({
           <div className="px-5 pb-6 flex flex-col gap-5">
             <div className="flex flex-col items-center gap-1">
               <DialogTitle className="text-[20px] font-bold text-[#222222] text-center font-noto leading-snug">
-                선택하신 정보로 인증을 진행할까요?
+                선택한 내용으로 저장할까요?
               </DialogTitle>
               <p className="text-[14px] text-[#888888] text-center font-noto whitespace-pre-line leading-relaxed">
-                {"인증할 성경을 정확히 입력하셨는지\n다시 한번 확인해 주세요."}
+                {"인증할 성경을 정확히 선택하셨는지\n다시 한번 확인해 주세요."}
               </p>
             </div>
-            <div className="border border-[#EEEEEE] rounded-[8px] px-4 py-4 flex flex-col gap-2">
-              <div className="flex gap-4 text-[15px] font-pretendard">
-                <span className="text-[#AAAAAA] w-4 shrink-0">권</span>
-                <span className="text-[#222222]">{selectedBook.name}</span>
-              </div>
-              <div className="flex gap-4 text-[15px] font-pretendard">
-                <span className="text-[#AAAAAA] w-4 shrink-0">장</span>
-                <span className="text-[#222222]">{formatChapters(Array.from(selected))}</span>
-              </div>
+            <div className="border border-[#EEEEEE] rounded-[8px] px-4 py-4 flex flex-col gap-2 max-h-[220px] overflow-y-auto">
+              {changedBooks.map((name) => (
+                <div key={name} className="flex gap-4 text-[15px] font-pretendard">
+                  <span className="text-[#AAAAAA] shrink-0 min-w-[64px]">{name}</span>
+                  <span className="text-[#222222]">
+                    {formatChapters(Array.from(draftByBook.get(name) ?? []))}
+                  </span>
+                </div>
+              ))}
             </div>
             <button onClick={handleConfirm} className="w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto">
               확인

@@ -48,18 +48,17 @@ export async function GET() {
 
 // ┌─────────────────────────────────────────────────────────────────┐
 // │  PATCH /api/v1/bible/progress                                    │
-// │  권(book) 단위 bulk replace: 그 권의 체크 목록을 통째로 교체.       │
-// │  나무 지급 + 회수(기준 이하면 최신순 삭제, 특별나무 포함)까지 처리. │
+// │  여러 권(book)을 한 번에 bulk replace. 각 권의 체크 목록을 통째 교체.│
+// │  나무 지급/회수는 전체 반영 후 "마지막에 한 번만" 정산.            │
 // │  명세: docs/api-spec.md 1-2                                       │
 // └─────────────────────────────────────────────────────────────────┘
 //
-// Request Body:
-//   { "book_name": "마태복음", "chapters": [1, 2, 3, 5] }
-//   - chapters = 그 권에서 "현재 체크된 장 전체 목록" (빈 배열이면 그 권 전체 해제)
-//
-// 처리: 그 권 기존 bible_progress 전부 삭제 → 새 목록 insert → 총장수 재계산
-//   → floor(총장수/10) 기준 일반 나무 지급/회수, 260장 기준 특별 나무 지급/회수.
-//   회수는 obtained_at 최신순(배치된 나무 포함)으로 삭제. (Supabase는 DB로만, 로직은 백엔드)
+// Request Body — 다권:
+//   { "books": [ { "book_name": "마태복음", "chapters": [3] },
+//                { "book_name": "마가복음", "chapters": [1,2,3,4,5] } ] }
+// 단권(하위호환):
+//   { "book_name": "마태복음", "chapters": [1,2,3] }
+//   - chapters = 그 권의 "현재 체크된 장 전체 목록" (빈 배열이면 그 권 전체 해제)
 
 type EarnedTree = { tree_id: string; tree_type: string; species: string; points: number };
 
@@ -71,34 +70,50 @@ export async function PATCH(request: Request) {
   }
 
   // 2) 본문 파싱
-  let body: { book_name?: unknown; chapters?: unknown };
+  let body: { books?: unknown; book_name?: unknown; chapters?: unknown };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ message: "잘못된 요청 형식입니다." }, { status: 400 });
   }
-  const { book_name, chapters } = body;
 
-  // 3) 검증 (책 + 장 목록)
-  if (typeof book_name !== "string" || !Array.isArray(chapters)) {
+  // 3) 다권/단권 → 배열로 정규화
+  let rawBooks: unknown;
+  if (Array.isArray(body.books)) {
+    rawBooks = body.books;
+  } else if (typeof body.book_name === "string") {
+    rawBooks = [{ book_name: body.book_name, chapters: body.chapters }];
+  } else {
     return NextResponse.json({ message: "올바르지 않은 요청입니다." }, { status: 400 });
   }
-  const book = NT_BOOKS.find((b) => b.name === book_name);
-  if (!book) {
-    return NextResponse.json({ message: "올바르지 않은 책 또는 장입니다." }, { status: 400 });
+  const list = rawBooks as Array<{ book_name?: unknown; chapters?: unknown }>;
+  if (!Array.isArray(list) || list.length === 0) {
+    return NextResponse.json({ message: "체크할 권이 없습니다." }, { status: 400 });
   }
-  const chapterSet = new Set<number>();
-  for (const c of chapters) {
-    if (typeof c !== "number" || !Number.isInteger(c) || c < 1 || c > book.chapters) {
+
+  // 4) 검증 + 권별 dedupe (같은 권 중복 시 마지막 것 사용)
+  const bookMap = new Map<string, number[]>();
+  for (const b of list) {
+    if (typeof b.book_name !== "string" || !Array.isArray(b.chapters)) {
+      return NextResponse.json({ message: "올바르지 않은 요청입니다." }, { status: 400 });
+    }
+    const book = NT_BOOKS.find((x) => x.name === b.book_name);
+    if (!book) {
       return NextResponse.json({ message: "올바르지 않은 책 또는 장입니다." }, { status: 400 });
     }
-    chapterSet.add(c);
+    const set = new Set<number>();
+    for (const c of b.chapters) {
+      if (typeof c !== "number" || !Number.isInteger(c) || c < 1 || c > book.chapters) {
+        return NextResponse.json({ message: "올바르지 않은 책 또는 장입니다." }, { status: 400 });
+      }
+      set.add(c);
+    }
+    bookMap.set(b.book_name, [...set].sort((a, b2) => a - b2));
   }
-  const chapterList = [...chapterSet].sort((a, b) => a - b);
 
   const supabase = createSupabaseServerClient();
 
-  // 4) 챌린지 기간 검증 (C1)
+  // 5) 챌린지 기간 검증 (C1)
   const today = new Date().toISOString().slice(0, 10);
   const { data: challenge } = await supabase
     .from("challenges")
@@ -112,24 +127,29 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ message: "챌린지 기간이 아닙니다." }, { status: 403 });
   }
 
-  // 5) 권 단위 bulk replace: 그 권 기존 행 삭제 → 새 목록 insert
-  const { error: delErr } = await supabase
-    .from("bible_progress")
-    .delete()
-    .eq("user_id", user.id)
-    .eq("book_name", book_name);
-  if (delErr) {
-    return NextResponse.json({ message: "처리 중 오류가 발생했습니다." }, { status: 500 });
+  // 6) 권별 bulk replace: 각 권 기존 행 삭제 → 새 목록 일괄 insert
+  for (const bookName of bookMap.keys()) {
+    const { error: delErr } = await supabase
+      .from("bible_progress")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("book_name", bookName);
+    if (delErr) {
+      return NextResponse.json({ message: "처리 중 오류가 발생했습니다." }, { status: 500 });
+    }
   }
-  if (chapterList.length > 0) {
-    const rows = chapterList.map((c) => ({ user_id: user.id, book_name, chapter: c }));
-    const { error: insErr } = await supabase.from("bible_progress").insert(rows);
+  const insertRows: { user_id: string; book_name: string; chapter: number }[] = [];
+  for (const [bookName, chs] of bookMap) {
+    for (const c of chs) insertRows.push({ user_id: user.id, book_name: bookName, chapter: c });
+  }
+  if (insertRows.length > 0) {
+    const { error: insErr } = await supabase.from("bible_progress").insert(insertRows);
     if (insErr) {
       return NextResponse.json({ message: "처리 중 오류가 발생했습니다." }, { status: 500 });
     }
   }
 
-  // 6) 총 장수 재계산
+  // 7) 총 장수 재계산 (전체 반영 후 한 번)
   const { count, error: cErr } = await supabase
     .from("bible_progress")
     .select("*", { count: "exact", head: true })
@@ -139,7 +159,7 @@ export async function PATCH(request: Request) {
   }
   const total = count ?? 0;
 
-  // 팀 테마 결정 (지급할 나무 종류 풀)
+  // 팀 테마 (지급할 나무 종류 풀)
   const { data: teamData } = await supabase
     .from("teams")
     .select("theme")
@@ -153,10 +173,9 @@ export async function PATCH(request: Request) {
   const newlyEarned: EarnedTree[] = [];
   let reclaimed = 0;
 
-  // 7) 일반 나무 — 기준(floor(total/10))에 맞춰 지급 또는 회수
+  // 8) 일반 나무 — 기준(floor(total/10))에 맞춰 지급 또는 회수 (한 번만)
   const target = Math.floor(total / 10);
   if (target > earned) {
-    // 지급
     const newRows = Array.from({ length: target - earned }, () => ({
       user_id: user.id,
       team_id: user.team_id,
@@ -177,7 +196,6 @@ export async function PATCH(request: Request) {
     await supabase.from("users").update({ trees_earned: target }).eq("id", user.id);
     earned = target;
   } else if (target < earned) {
-    // 회수: 최신순(obtained_at desc)으로 (earned - target)그루 삭제 (배치된 것 포함)
     const { data: victims, error: vErr } = await supabase
       .from("trees")
       .select("id")
@@ -197,7 +215,7 @@ export async function PATCH(request: Request) {
     earned = target;
   }
 
-  // 8) 특별 나무 — 260장 기준으로 지급 또는 회수
+  // 9) 특별 나무 — 260장 기준 지급/회수
   let specialNew = false;
   if (total >= TOTAL_NT_CHAPTERS && !special) {
     await supabase.from("trees").insert({
@@ -211,7 +229,6 @@ export async function PATCH(request: Request) {
     special = true;
     specialNew = true;
   } else if (total < TOTAL_NT_CHAPTERS && special) {
-    // 1독 미만으로 내려가면 특별 나무도 회수
     const { data: sp } = await supabase
       .from("trees")
       .select("id")
@@ -228,13 +245,12 @@ export async function PATCH(request: Request) {
     special = false;
   }
 
-  // 9) 홈 페이지 캐시 무효화 (점수/나무 수 즉시 반영)
+  // 10) 홈 캐시 무효화
   revalidatePath("/");
 
-  // 10) 응답
+  // 11) 응답
   return NextResponse.json({
-    book_name,
-    checked_chapters: chapterList,
+    books: [...bookMap].map(([book_name, chapters]) => ({ book_name, chapters })),
     total_chapters: total,
     total_nt_chapters: TOTAL_NT_CHAPTERS,
     trees_earned: earned,

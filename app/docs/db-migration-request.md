@@ -17,7 +17,7 @@
 | 4 | `bible_progress` | UNIQUE(user_id, book_name, chapter) **인덱스 추가** | 멱등성(백엔드 upsert가 의존) |
 | 5 | `challenges` | 테이블 **신설(없을 경우)** | C1 (읽기 기간 제약) |
 | 6 | `challenges` 컬럼 | `is_active` boolean **추가** | C1 백엔드 검증이 의존 (**2026-06-17 운영 적용 완료**) |
-| 7 | `trees` 컬럼 + 시퀀스/함수 | `z_index` bigint + `tree_z_seq` 시퀀스 + `next_tree_z()` **추가** | 나무 렌더 순서(배치 시 부여) |
+| 7 | `trees` 컬럼 | `z_index` bigint **추가** | 나무 렌더 순서 (배치 시 **팀별 max+1**, 백엔드 처리) |
 
 > 🔄 **결정 변경 반영**: 성경 체크는 **권(book) 단위 replace** 방식으로 변경. A1(나무 회수 **허용**), B3(회수 시 **배치된 나무도 삭제 가능**). 상세는 [api-spec.md](./api-spec.md) §1-2.
 
@@ -70,11 +70,8 @@ create table if not exists challenges (
 -- create table if not exists로는 컬럼이 안 생긴다. 아래로 명시 보강.
 alter table challenges add column if not exists is_active boolean not null default false;
 
--- 7) trees.z_index + 시퀀스 + 헬퍼 함수 (나무 렌더 순서, 배치 시 부여)
-create sequence if not exists tree_z_seq;
+-- 7) trees.z_index (나무 렌더 순서). 값은 백엔드가 "팀별 max+1"로 부여 → 시퀀스/함수 불필요
 alter table trees add column if not exists z_index bigint;
-create or replace function next_tree_z() returns bigint
-language sql as $$ select nextval('tree_z_seq'); $$;
 ```
 
 > 💡 나무 지급/체크 로직은 **백엔드 코드**(`src/app/api/v1/bible/progress/route.ts`)에서 처리합니다. DB 함수(`check_chapter` 등)는 필요 없습니다.
@@ -138,6 +135,6 @@ values ('2026 신약 1독 챌린지', '2026-06-01', '2026-08-31', true);
 - [ ] `challenges` 활성 1건 존재 (운영용 — `is_active=true` 챌린지 등록 필요)
 - [x] `GET /api/v1/forests/:team_id` 정상 200 — 2026-06-17 검증
 - [x] `PATCH /api/v1/bible/progress` 배치 호출 시 나무 정상 지급 — 2026-06-17 검증
-- [ ] `trees`에 `z_index` 컬럼 + `tree_z_seq` 시퀀스 + `next_tree_z()` 함수 존재 (#7)
+- [ ] `trees`에 `z_index` 컬럼 존재 (#7) — 값 부여는 백엔드 팀별 max+1
 - [ ] 권 단위 replace로 장수 줄였을 때 나무 **회수** 정상 동작 (A1 변경)
 - [ ] 나무 배치 시 `z_index` 부여 + `forests`가 z_index 순서로 반환
