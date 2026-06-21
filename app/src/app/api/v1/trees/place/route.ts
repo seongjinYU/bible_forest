@@ -54,13 +54,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "이미 배치된 나무입니다." }, { status: 400 });
   }
 
-  // ── 4) 배치 (is_planted=false 조건을 한 번 더 걸어 동시 요청 방어) ──
+  // ── 4) 배치 시점에 z_index 부여 (DB 시퀀스 nextval — 순차 증가, 렌더 순서) ──
+  const { data: z, error: zErr } = await supabase.rpc("next_tree_z");
+  if (zErr) {
+    return NextResponse.json({ message: "처리 중 오류가 발생했습니다." }, { status: 500 });
+  }
+
+  // ── 5) 배치 (is_planted=false 조건을 한 번 더 걸어 동시 요청 방어) ──
   const { data: updated, error: upErr } = await supabase
     .from("trees")
-    .update({ is_planted: true, x, y, planted_at: new Date().toISOString() })
+    .update({ is_planted: true, x, y, z_index: z, planted_at: new Date().toISOString() })
     .eq("id", tree_id)
     .eq("is_planted", false)
-    .select("id, tree_type, species, x, y, planted_at")
+    .select("id, tree_type, species, x, y, z_index, planted_at")
     .single();
 
   if (upErr || !updated) {
@@ -76,6 +82,7 @@ export async function POST(request: Request) {
         species: updated.species,
         x: updated.x,
         y: updated.y,
+        z_index: updated.z_index,
         planted_at: updated.planted_at,
       },
     },

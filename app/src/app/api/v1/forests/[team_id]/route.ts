@@ -52,12 +52,13 @@ export async function GET(
       .from("trees")
       .select("points")
       .eq("team_id", team_id),
-    // 숲에 그릴 "배치된" 나무만 + 심은 사람 닉네임(users 조인)
+    // 숲에 그릴 "배치된" 나무만 + 심은 사람 닉네임(users 조인). z_index 오름차순(뒤→앞 렌더)
     supabase
       .from("trees")
-      .select("id, species, tree_type, x, y, users(nickname)")
+      .select("id, species, tree_type, x, y, z_index, users(nickname)")
       .eq("team_id", team_id)
-      .eq("is_planted", true),
+      .eq("is_planted", true)
+      .order("z_index", { ascending: true, nullsFirst: true }),
   ]);
 
   if (membersRes.error || allTreesRes.error || plantedRes.error) {
@@ -78,6 +79,7 @@ export async function GET(
       tree_type: t.tree_type,
       x: t.x,
       y: t.y,
+      z_index: t.z_index,
       nickname: u?.nickname ?? null,
     };
   });
