@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import ForestsCardGrid from "./ForestsCardGrid";
+import ActivityTicker, { type Activity } from "./ActivityTicker";
 
 type TeamColor = { primary: string; illus: string; border: string };
 
@@ -39,11 +40,9 @@ export default async function ForestsPage() {
     supabase.from("trees").select("team_id, species, x, y").eq("is_planted", true),
     supabase.from("users").select("team_id, bible_progress(count)"),
     supabase
-      .from("bible_progress")
-      .select("book_name, chapter, users(nickname, teams(name))")
-      .order("checked_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .from("users")
+      .select("nickname, teams(name), bible_progress(book_name, chapter, checked_at)")
+      .order("checked_at", { referencedTable: "bible_progress", ascending: false }),
   ]);
 
   // theme 컬럼이 DB에 없으면 error가 오므로 fallback
@@ -58,20 +57,35 @@ export default async function ForestsPage() {
   const allTrees = (treesRes.data ?? []) as { team_id: string; species: string; x: number; y: number }[];
   const allUsers = (usersRes.data ?? []) as UserRow[];
 
-  // 최근 활동 파싱 (users join은 객체/배열 양쪽 대응)
-  const rawActivity = activityRes.data as {
-    book_name: string;
-    chapter: number;
-    users:
-      | { nickname: string; teams: { name: string } | { name: string }[] | null }
-      | { nickname: string; teams: { name: string } | { name: string }[] | null }[]
-      | null;
-  } | null;
+  // 유저별 최신 bible_progress 1건씩 파싱
+  type RawActivityRow = {
+    nickname: string;
+    teams: { name: string } | { name: string }[] | null;
+    bible_progress: { book_name: string; chapter: number; checked_at: string }[];
+  };
+  const rawActivities = (activityRes.data ?? []) as unknown as RawActivityRow[];
+  const initialActivities: Activity[] = rawActivities
+    .map((row) => {
+      const teamName = Array.isArray(row.teams)
+        ? (row.teams[0]?.name ?? "")
+        : (row.teams?.name ?? "");
+      const latest = row.bible_progress[0];
+      if (!latest || !row.nickname) return null;
+      return {
+        book_name: latest.book_name,
+        chapter: latest.chapter,
+        nickname: row.nickname,
+        team_name: teamName,
+      };
+    })
+    .filter(Boolean) as Activity[];
 
-  const activityUserObj = rawActivity ? toSingle(rawActivity.users) : null;
-  const activityTeamObj = activityUserObj ? toSingle(activityUserObj.teams) : null;
-  const activityNickname = activityUserObj?.nickname ?? "";
-  const activityTeamName = activityTeamObj?.name ?? "";
+  // Fisher-Yates 셔플 후 5건
+  for (let i = initialActivities.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [initialActivities[i], initialActivities[j]] = [initialActivities[j], initialActivities[i]];
+  }
+  const shuffledActivities = initialActivities.slice(0, 5);
 
   // 팀 통계 계산
   const teamStats: TeamStat[] = allTeams.map((team) => {
@@ -101,21 +115,8 @@ export default async function ForestsPage() {
       >
 
         {/* 최근 활동 배너 */}
-        {rawActivity && activityNickname && (
-          <div className="mb-4">
-            <div className="rounded-[14px] bg-[#111111] px-4 py-3.5 flex items-center gap-2.5">
-              <span className="text-[18px] shrink-0">🍀</span>
-              <p className="text-[13px] font-pretendard leading-snug">
-                <span className="text-white/70">
-                  {activityTeamName} {activityNickname}님{" "}
-                </span>
-                <span className="text-white font-bold">
-                  {rawActivity.book_name} {rawActivity.chapter}장
-                </span>
-                <span className="text-white/70"> 인증 완료!</span>
-              </p>
-            </div>
-          </div>
+        {shuffledActivities.length > 0 && (
+          <ActivityTicker initial={shuffledActivities} />
         )}
 
         {/* 1위 팀 */}
