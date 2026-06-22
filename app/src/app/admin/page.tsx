@@ -3,17 +3,24 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const ADMIN_PASSWORD = "admin1234";
-
 export default function AdminLoginPage() {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      localStorage.setItem("admin_auth", "true");
+    setSubmitting(true);
+    setError(false);
+    // 서버에서 ADMIN_PASSWORD 검증 후 httpOnly admin_session 쿠키 발급.
+    const res = await fetch("/api/v1/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    setSubmitting(false);
+    if (res.ok) {
       router.push("/admin/dashboard");
     } else {
       setError(true);
@@ -50,10 +57,10 @@ export default function AdminLoginPage() {
 
           <button
             type="submit"
-            disabled={!password}
+            disabled={!password || submitting}
             className="h-12 rounded-xl bg-[#31C678] text-white text-[16px] font-medium disabled:bg-gray-200 disabled:text-gray-400 transition-colors font-noto"
           >
-            로그인
+            {submitting ? "확인 중..." : "로그인"}
           </button>
         </form>
       </div>

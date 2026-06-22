@@ -1,68 +1,98 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Pencil, StopCircle, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Challenge {
   id: string;
   name: string;
-  startDate: string;
-  endDate: string;
-  active: boolean;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
 }
 
-const STORAGE_KEY = "admin_challenges";
-
-const DEFAULT_CHALLENGES: Challenge[] = [
-  { id: "1", name: "2026 신약 1독 챌린지", startDate: "2026-06-01", endDate: "2026-08-15", active: true },
-];
-
 export default function ChallengesPage() {
+  const router = useRouter();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState("");
   const [modalOpen, setModalOpen]   = useState(false);
   const [editing, setEditing]       = useState<Challenge | null>(null);
-  const [form, setForm]             = useState({ name: "", startDate: "", endDate: "" });
+  const [form, setForm]             = useState({ name: "", start_date: "", end_date: "" });
 
-  useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    setChallenges(raw ? JSON.parse(raw) : DEFAULT_CHALLENGES);
-  }, []);
+  const load = useCallback(async () => {
+    const res = await fetch("/api/v1/admin/challenges");
+    if (res.status === 403) { router.replace("/admin"); return; }
+    if (!res.ok) { setError("챌린지를 불러오지 못했습니다."); setLoading(false); return; }
+    const data = await res.json();
+    setChallenges(data.challenges ?? []);
+    setLoading(false);
+  }, [router]);
 
-  function save(updated: Challenge[]) {
-    setChallenges(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  }
+  useEffect(() => { load(); }, [load]);
 
   function openAdd() {
     setEditing(null);
-    setForm({ name: "", startDate: "", endDate: "" });
+    setForm({ name: "", start_date: "", end_date: "" });
     setModalOpen(true);
   }
 
   function openEdit(c: Challenge) {
     setEditing(c);
-    setForm({ name: c.name, startDate: c.startDate, endDate: c.endDate });
+    setForm({ name: c.name, start_date: c.start_date, end_date: c.end_date });
     setModalOpen(true);
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (editing) {
-      save(challenges.map((c) => c.id === editing.id ? { ...c, ...form } : c));
-    } else {
-      save([...challenges, { id: Date.now().toString(), ...form, active: false }]);
+    setError("");
+    const res = editing
+      ? await fetch(`/api/v1/admin/challenges/${editing.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        })
+      : await fetch("/api/v1/admin/challenges", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setError(d.message ?? "저장에 실패했습니다.");
+      return;
     }
     setModalOpen(false);
+    await load();
   }
 
-  function toggleActive(id: string) {
-    save(challenges.map((c) => c.id === id ? { ...c, active: !c.active } : c));
+  async function toggleActive(c: Challenge) {
+    setError("");
+    const res = await fetch(`/api/v1/admin/challenges/${c.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_active: !c.is_active }),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setError(d.message ?? "상태 변경에 실패했습니다.");
+      return;
+    }
+    await load();
   }
 
-  function deleteChallenge(id: string) {
+  async function deleteChallenge(id: string) {
     if (!confirm("정말 삭제하시겠습니까?")) return;
-    save(challenges.filter((c) => c.id !== id));
+    setError("");
+    const res = await fetch(`/api/v1/admin/challenges/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setError(d.message ?? "삭제에 실패했습니다.");
+      return;
+    }
+    await load();
   }
 
   return (
@@ -81,51 +111,57 @@ export default function ChallengesPage() {
         </button>
       </div>
 
-      <div className="flex flex-col gap-3">
-        {challenges.length === 0 && (
-          <div className="text-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-100">
-            <p className="text-[15px] font-pretendard">등록된 챌린지가 없습니다</p>
-          </div>
-        )}
-        {challenges.map((c) => (
-          <div key={c.id} className="bg-white rounded-2xl border border-gray-100 px-5 py-4 flex items-center justify-between gap-4">
-            <div className="flex flex-col gap-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span
+      {error && <p className="mb-4 text-sm text-red-500 font-pretendard">{error}</p>}
+
+      {loading ? (
+        <p className="text-sm text-gray-400 font-pretendard">불러오는 중...</p>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {challenges.length === 0 && (
+            <div className="text-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-100">
+              <p className="text-[15px] font-pretendard">등록된 챌린지가 없습니다</p>
+            </div>
+          )}
+          {challenges.map((c) => (
+            <div key={c.id} className="bg-white rounded-2xl border border-gray-100 px-5 py-4 flex items-center justify-between gap-4">
+              <div className="flex flex-col gap-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 text-[12px] px-2 py-0.5 rounded-full font-medium font-pretendard",
+                      c.is_active ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400"
+                    )}
+                  >
+                    <span className={cn("w-1.5 h-1.5 rounded-full", c.is_active ? "bg-green-500" : "bg-gray-300")} />
+                    {c.is_active ? "진행중" : "종료"}
+                  </span>
+                  <h3 className="font-semibold text-gray-900 text-[15px] truncate font-noto">{c.name}</h3>
+                </div>
+                <p className="text-[13px] text-gray-400 font-pretendard">{c.start_date} ~ {c.end_date}</p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => toggleActive(c)}
                   className={cn(
-                    "inline-flex items-center gap-1 text-[12px] px-2 py-0.5 rounded-full font-medium font-pretendard",
-                    c.active ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400"
+                    "flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] border transition-colors font-pretendard",
+                    c.is_active ? "border-red-200 text-red-500 hover:bg-red-50" : "border-green-200 text-green-600 hover:bg-green-50"
                   )}
                 >
-                  <span className={cn("w-1.5 h-1.5 rounded-full", c.active ? "bg-green-500" : "bg-gray-300")} />
-                  {c.active ? "진행중" : "종료"}
-                </span>
-                <h3 className="font-semibold text-gray-900 text-[15px] truncate font-noto">{c.name}</h3>
+                  <StopCircle size={13} />
+                  {c.is_active ? "종료" : "활성화"}
+                </button>
+                <button onClick={() => openEdit(c)} className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors">
+                  <Pencil size={13} />
+                </button>
+                <button onClick={() => deleteChallenge(c.id)} className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-red-50 hover:border-red-200 hover:text-red-400 transition-colors">
+                  <Trash2 size={13} />
+                </button>
               </div>
-              <p className="text-[13px] text-gray-400 font-pretendard">{c.startDate} ~ {c.endDate}</p>
             </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => toggleActive(c.id)}
-                className={cn(
-                  "flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] border transition-colors font-pretendard",
-                  c.active ? "border-red-200 text-red-500 hover:bg-red-50" : "border-green-200 text-green-600 hover:bg-green-50"
-                )}
-              >
-                <StopCircle size={13} />
-                {c.active ? "종료" : "재개"}
-              </button>
-              <button onClick={() => openEdit(c)} className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors">
-                <Pencil size={13} />
-              </button>
-              <button onClick={() => deleteChallenge(c.id)} className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-red-50 hover:border-red-200 hover:text-red-400 transition-colors">
-                <Trash2 size={13} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {modalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
@@ -154,8 +190,8 @@ export default function ChallengesPage() {
                   <label className="text-sm font-medium text-gray-700 font-pretendard">시작일</label>
                   <input
                     type="date"
-                    value={form.startDate}
-                    onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                    value={form.start_date}
+                    onChange={(e) => setForm({ ...form, start_date: e.target.value })}
                     className="h-11 px-3 rounded-xl border border-gray-200 focus:border-[#31C678] outline-none text-[14px] font-pretendard"
                   />
                 </div>
@@ -163,8 +199,8 @@ export default function ChallengesPage() {
                   <label className="text-sm font-medium text-gray-700 font-pretendard">종료일</label>
                   <input
                     type="date"
-                    value={form.endDate}
-                    onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+                    value={form.end_date}
+                    onChange={(e) => setForm({ ...form, end_date: e.target.value })}
                     className="h-11 px-3 rounded-xl border border-gray-200 focus:border-[#31C678] outline-none text-[14px] font-pretendard"
                   />
                 </div>
@@ -176,7 +212,7 @@ export default function ChallengesPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={!form.name || !form.startDate || !form.endDate}
+                  disabled={!form.name || !form.start_date || !form.end_date}
                   className="flex-1 h-11 rounded-xl bg-[#31C678] text-white text-[14px] font-medium disabled:bg-gray-200 disabled:text-gray-400 transition-colors font-pretendard"
                 >
                   {editing ? "수정 완료" : "추가"}
