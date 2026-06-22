@@ -49,7 +49,7 @@ export default async function ForestDetailPage({
   const particle = SUBJECT_PARTICLE[theme];
 
   return (
-    <div className="relative min-h-dvh overflow-hidden">
+    <div className="relative min-h-svh overflow-hidden">
       {/* 전체화면 배경 */}
       <div className="absolute inset-0">
         <img src={`/assets/${theme}/bg.png`} alt="" className="w-full h-full object-cover" />
@@ -73,7 +73,7 @@ export default async function ForestDetailPage({
       </div>
 
       {/* 콘텐츠 */}
-      <div className="relative z-10 flex flex-col min-h-dvh">
+      <div className="relative z-10 flex flex-col min-h-svh">
         <div className="h-11" />
 
         {/* 숲 인터랙션 영역 */}
