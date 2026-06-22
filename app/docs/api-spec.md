@@ -44,60 +44,67 @@
 
 ---
 
-### 1-2. `PATCH /api/v1/bible/progress` — 여러 장 한 번에(배치)
-여러 장을 한 번에 읽기 완료/취소 + 나무 지급. (로직은 백엔드에서 처리)
+### 1-2. `PATCH /api/v1/bible/progress` — 여러 권(book) 단위 replace
+여러 권의 체크 목록을 한 번에 통째로 교체한다. 나무 지급/회수는 **전체 반영 후 한 번에** 정산. (로직은 백엔드)
 
-**Request Body (배치)**
+**Request Body — 다권**
 ```json
 {
-  "checked": true,
-  "chapters": [
-    { "book_name": "마태복음", "chapter": 1 },
-    { "book_name": "마태복음", "chapter": 2 },
-    { "book_name": "마가복음", "chapter": 1 }
+  "books": [
+    { "book_name": "마태복음", "chapters": [3] },
+    { "book_name": "마가복음", "chapters": [1, 2, 3, 4, 5] }
   ]
 }
 ```
+**단권(하위호환)**
+```json
+{ "book_name": "마태복음", "chapters": [1, 2, 3, 5] }
+```
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `checked` | boolean | `true`=완료 / `false`=취소 (배치 전체에 적용) |
-| `chapters` | array | `{ book_name, chapter }` 목록 (여러 책 혼합 가능) |
-| `chapters[].book_name` | string | 신약 책 이름 (`NT_BOOKS` 중 하나) |
-| `chapters[].chapter` | int | 1 ~ 해당 책의 최대 장수 |
+| `books` | array | `{ book_name, chapters }` 목록 (여러 권 동시) |
+| `books[].book_name` | string | 신약 책 이름 (`NT_BOOKS` 중 하나) |
+| `books[].chapters` | int[] | 그 권의 **현재 체크된 장 전체 목록** (빈 배열이면 그 권 전체 해제) |
 
-> 하위호환: 단건 `{ "book_name": "마태복음", "chapter": 1, "checked": true }` 도 허용(내부에서 길이 1 배열로 처리).
+> 단권 형식 `{ book_name, chapters }` 도 허용 — 내부에서 `books` 길이 1로 처리.
 
 **처리 (BE)**
 1. 활성 챌린지 기간 검증 (C1) → 기간 밖이면 `403`
-2. 각 항목 `book_name`/`chapter` 유효성 → 불일치 시 `400`
-3. `checked`에 따라 `bible_progress` upsert(중복 무시) / delete
-4. 총 장수 재계산
-5. A1 규칙(단조 증가, `floor(총장수/10)`)으로 일반 나무를 **한 번에** 지급
-6. 260장 달성 & 미수령이면 special 나무 지급
+2. 각 권/장 유효성 → 불일치 시 `400`
+3. 각 권의 `bible_progress` **삭제 → 새 목록 insert** (권별 bulk replace)
+4. 총 장수 재계산 (전체 반영 후 1회)
+5. `floor(총장수/10)` 기준 일반 나무 **지급 또는 회수** — **한 번만** 정산 (A1 변경: 회수 허용)
+6. 260장 기준 특별 나무 **지급 또는 회수**
 
 **Response 200**
 ```json
 {
-  "total_chapters": 20,
+  "books": [
+    { "book_name": "마태복음", "chapters": [3] },
+    { "book_name": "마가복음", "chapters": [1, 2, 3, 4, 5] }
+  ],
+  "total_chapters": 6,
   "total_nt_chapters": 260,
-  "trees_earned": 2,
-  "next_tree_remaining": 10,
+  "trees_earned": 0,
+  "next_tree_remaining": 4,
   "completed_one_bible": false,
   "special_tree_earned": false,
   "special_tree_newly_earned": false,
-  "newly_earned": [
-    { "tree_id": "uuid", "tree_type": "normal", "species": "birch", "points": 1 }
-  ]
+  "newly_earned": [],
+  "reclaimed_count": 0
 }
 ```
-- `newly_earned`: 이번 요청으로 새로 획득한 나무(없으면 `[]`). 배치로 여러 그루가 한 번에 들어올 수 있음.
-- 취소로 장수가 줄어도 `trees_earned`는 감소하지 않음(A1).
+- `books`: 실제 적용된 권/장 목록(정제·정렬됨).
+- `newly_earned`: 이번 요청으로 새로 획득한 나무(없으면 `[]`).
+- `reclaimed_count`: 이번 요청으로 **회수(삭제)된 나무 수**.
+- ⚠️ **A1 변경(회수 허용)**: 장수가 줄어 기준 미달이면 `obtained_at` **최신순으로 나무 회수**(배치된 나무·특별나무 포함). `trees_earned` **감소 가능**.
+- `species`는 팀 테마에 따른 에셋 키(숫자 문자열). special은 `"special"`.
 
 **에러**
 | status | message 예시 | 조건 |
 |--------|-------------|------|
 | 400 | `"올바르지 않은 책 또는 장입니다."` | 책/장 범위 오류 |
-| 400 | `"체크할 장이 없습니다."` | `chapters` 빈 배열/누락 |
+| 400 | `"올바르지 않은 요청입니다."` / `"체크할 권이 없습니다."` | 형식/빈 요청 |
 | 401 | `"로그인이 필요합니다."` | 미로그인 |
 | 403 | `"챌린지 기간이 아닙니다."` | 기간 밖 |
 
@@ -140,7 +147,7 @@
 ---
 
 ### 2-2. `POST /api/v1/trees/place`
-획득한 나무를 숲에 배치(좌표 저장). **1회성, 이후 수정/취소 불가(B3).**
+획득한 나무를 숲에 배치(좌표 저장). 배치 시 **z_index(렌더 순서)** 를 DB 시퀀스로 부여.
 
 **Request Body**
 ```json
@@ -157,14 +164,14 @@
 - 이미 배치된(`is_planted=true`) 나무면 `400`
 - `0 <= x <= 100`, `0 <= y <= 100` 아니면 `400`
 
-**처리**: `is_planted=true`, `x`, `y`, `planted_at=now()` 설정.
+**처리**: `is_planted=true`, `x`, `y`, `planted_at=now()`, `z_index=(팀 내 max(z_index)+1)` 설정.
 
 **Response 201**
 ```json
 {
   "tree": {
-    "tree_id": "uuid", "tree_type": "normal", "species": "pine",
-    "x": 45.5, "y": 80.2, "planted_at": "2026-06-10T05:10:00Z"
+    "tree_id": "uuid", "tree_type": "normal", "species": "12",
+    "x": 45.5, "y": 80.2, "z_index": 7, "planted_at": "2026-06-10T05:10:00Z"
   }
 }
 ```
@@ -176,7 +183,8 @@
 | 403 | `"본인 소유의 나무가 아닙니다."` | 소유권 |
 | 404 | `"나무를 찾을 수 없습니다."` | 없는 tree_id |
 
-> ❌ `PATCH /trees/move`, 배치 삭제 API는 **제공하지 않음**(B3).
+> ❌ `PATCH /trees/move`(위치 수정) API는 **제공하지 않음**.
+> ⚠️ **B3 변경**: 단, 읽기 취소로 나무가 회수될 때는 **배치된 나무도 삭제될 수 있음**(1-2 참고).
 
 ---
 
@@ -190,12 +198,13 @@
 {
   "team": { "id": "uuid", "name": "1팀", "member_count": 12, "tree_count": 34, "total_score": 34 },
   "trees": [
-    { "tree_id": "uuid", "species": "pine",   "tree_type": "normal",  "x": 45.5, "y": 80.2, "nickname": "홍길동" },
-    { "tree_id": "uuid", "species": "special","tree_type": "special", "x": 12.0, "y": 30.5, "nickname": "김철수" }
+    { "tree_id": "uuid", "species": "12",     "tree_type": "normal",  "x": 45.5, "y": 80.2, "z_index": 7,  "nickname": "홍길동" },
+    { "tree_id": "uuid", "species": "special", "tree_type": "special", "x": 12.0, "y": 30.5, "z_index": 12, "nickname": "김철수" }
   ]
 }
 ```
 - `trees`: `is_planted=true`인 팀 전체 나무. `nickname`은 심은 사람(표시 선택).
+- **`z_index` 오름차순으로 정렬**되어 옴 → 클라이언트는 순서대로 그리면 됨(뒤→앞).
 - 미배치 나무는 포함하지 않음.
 
 **에러**: `404 { "message": "팀을 찾을 수 없습니다." }`
@@ -416,7 +425,7 @@
 | Method | Path | 인증 | 설명 |
 |--------|------|------|------|
 | GET | `/api/v1/bible/progress` | user | 체크 현황 + 요약 |
-| PATCH | `/api/v1/bible/progress` | user | 장 체크/해제 + 나무 지급(트랜잭션) |
+| PATCH | `/api/v1/bible/progress` | user | 여러 권 replace + 나무 지급/회수 |
 | GET | `/api/v1/bible/status` | user | 요약만 경량 조회 |
 | GET | `/api/v1/trees/inventory` | user | 미배치 나무 목록 |
 | POST | `/api/v1/trees/place` | user | 나무 배치(1회성) |
@@ -463,7 +472,7 @@ challenges (활성 1개) ── 읽기 체크 기간 제약에만 사용
 | nickname | text | not null | 이름. 팀 내 닉네임이 로그인 키 — 같은 팀·같은 닉네임은 동일 사용자로 취급(재로그인) |
 | team_id | uuid | FK→teams.id, not null | |
 | is_admin | boolean | default false | |
-| trees_earned | int | not null default 0 | **총 보유 나무 수(단조 증가, A1)** |
+| trees_earned | int | not null default 0 | 총 보유 일반나무 수 (A1 변경: 회수 시 **감소 가능**) |
 | special_tree_earned | boolean | not null default false | 1독 특별 나무 수령 여부 |
 | created_at | timestamptz | default `now()` | |
 
@@ -493,6 +502,7 @@ challenges (활성 1개) ── 읽기 체크 기간 제약에만 사용
 | y | numeric(5,2) | null | 세로 % 0~100 (B1) |
 | obtained_at | timestamptz | default `now()` | 획득 시각 |
 | planted_at | timestamptz | null | 배치 시각 |
+| z_index | bigint | null | 배치 시 **팀별 max(z_index)+1**로 부여 — 렌더 순서. 미배치는 null |
 
 인덱스: `idx_trees_user (user_id)`, `idx_trees_team_planted (team_id, is_planted)`
 
@@ -551,6 +561,7 @@ create table if not exists trees (
   y            numeric(5,2),
   obtained_at  timestamptz default now(),
   planted_at   timestamptz,
+  z_index      bigint,
   constraint chk_xy check (
     (is_planted = false) or
     (x between 0 and 100 and y between 0 and 100)
@@ -572,6 +583,9 @@ create table if not exists challenges (
 -- 기존 운영 DB에 challenges가 is_active 없이 존재하던 경우 보강
 -- (create table if not exists는 기존 테이블의 컬럼을 추가하지 않으므로 필수)
 alter table challenges add column if not exists is_active boolean not null default false;
+
+-- 나무 렌더 순서(z_index): 배치 시점에 백엔드가 "팀별 max(z_index)+1"로 부여 (시퀀스/함수 불필요)
+alter table trees add column if not exists z_index bigint;
 ```
 **테스트 시드 (선택)** — 로컬 테스트용 고정 UUID 데이터. ⚠️ **운영 DB에는 넣지 말 것.**
 ```sql

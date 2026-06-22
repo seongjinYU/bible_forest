@@ -10,7 +10,6 @@ import { NT_BOOKS } from "@/constants/bible";
 
 type ApiResult = { method: string; path: string; status: number; body: unknown };
 type Team = { id: string; name: string };
-type ChapterItem = { book_name: string; chapter: number };
 
 export default function ApiTestPage() {
   const [teams, setTeams] = useState<Team[]>([]);
@@ -21,12 +20,11 @@ export default function ApiTestPage() {
   const [nickname, setNickname] = useState("테스터");
   const [teamId, setTeamId] = useState("");
 
-  // bible 배치 입력
+  // bible 권 단위 replace 입력
   const [book, setBook] = useState<string>(NT_BOOKS[0].name);
   const [chapter, setChapter] = useState(1);
   const [rangeTo, setRangeTo] = useState(10);
-  const [checked, setChecked] = useState(true);
-  const [pending, setPending] = useState<ChapterItem[]>([]); // 일괄 보낼 장 목록
+  const [chaptersList, setChaptersList] = useState<number[]>([]); // 그 권의 체크된 장 목록
 
   // trees/place 입력
   const [treeId, setTreeId] = useState("");
@@ -70,23 +68,17 @@ export default function ApiTestPage() {
     if (first) setTreeId(first.tree_id);
   }
 
-  // ── 배치 목록 관리 ──
+  // ── 권의 장 목록 관리 (number[]) ──
   function addOne() {
-    setPending((p) =>
-      p.some((i) => i.book_name === book && i.chapter === chapter)
-        ? p
-        : [...p, { book_name: book, chapter }],
-    );
+    setChaptersList((p) => (p.includes(chapter) ? p : [...p, chapter].sort((a, b) => a - b)));
   }
   function addRange() {
     const lo = Math.min(chapter, rangeTo), hi = Math.max(chapter, rangeTo);
-    const next = [...pending];
-    for (let c = lo; c <= hi; c++) {
-      if (!next.some((i) => i.book_name === book && i.chapter === c)) next.push({ book_name: book, chapter: c });
-    }
-    setPending(next);
+    const set = new Set(chaptersList);
+    for (let c = lo; c <= hi; c++) set.add(c);
+    setChaptersList([...set].sort((a, b) => a - b));
   }
-  function removeItem(idx: number) { setPending((p) => p.filter((_, i) => i !== idx)); }
+  function removeChapter(c: number) { setChaptersList((p) => p.filter((x) => x !== c)); }
 
   const box = "border border-gray-200 rounded-lg p-4 flex flex-col gap-3";
   const btn = "px-3 py-2 rounded-md bg-[#31C678] text-white text-sm font-medium disabled:opacity-50";
@@ -116,52 +108,52 @@ export default function ApiTestPage() {
         </div>
       </div>
 
-      {/* 2. Bible (배치) */}
+      {/* 2. Bible (권 단위 replace) */}
       <div className={box}>
-        <h2 className="font-bold">2. 성경 읽기 (여러 장 한 번에) <span className="text-xs text-gray-400">GET/PATCH /bible/progress · GET /bible/status</span></h2>
+        <h2 className="font-bold">2. 성경 읽기 (권 단위 replace) <span className="text-xs text-gray-400">GET/PATCH /bible/progress · GET /bible/status</span></h2>
         <div className="flex flex-wrap gap-2">
           <button className={btn2} disabled={loading} onClick={() => call("GET", "/api/v1/bible/status")}>요약 조회 (status)</button>
           <button className={btn2} disabled={loading} onClick={() => call("GET", "/api/v1/bible/progress")}>전체 현황 (progress)</button>
         </div>
 
-        {/* 장 목록 만들기 */}
+        {/* 권 선택 + 장 목록 만들기 */}
         <div className="flex flex-wrap gap-2 items-center border-t pt-3">
           <select className={inp} value={book} onChange={(e) => setBook(e.target.value)}>
             {NT_BOOKS.map((b) => <option key={b.name} value={b.name}>{b.name}</option>)}
           </select>
           <input className={`${inp} w-16`} type="number" min={1} value={chapter} onChange={(e) => setChapter(Number(e.target.value))} title="시작 장" />
-          <button className={btn3} disabled={loading} onClick={addOne}>+ 이 장 추가</button>
+          <button className={btn3} disabled={loading} onClick={addOne}>+ 이 장</button>
           <span className="text-gray-400 text-sm">~</span>
           <input className={`${inp} w-16`} type="number" min={1} value={rangeTo} onChange={(e) => setRangeTo(Number(e.target.value))} title="끝 장" />
-          <button className={btn3} disabled={loading} onClick={addRange}>+ 범위 추가</button>
+          <button className={btn3} disabled={loading} onClick={addRange}>+ 범위</button>
         </div>
 
-        {/* 선택된 장 칩 목록 */}
-        {pending.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 bg-gray-50 rounded-md p-2">
-            {pending.map((it, i) => (
-              <span key={i} className="inline-flex items-center gap-1 bg-white border border-gray-300 rounded-full px-2 py-0.5 text-xs">
-                {it.book_name} {it.chapter}장
-                <button className="text-gray-400 hover:text-red-500" onClick={() => removeItem(i)}>✕</button>
-              </span>
-            ))}
-          </div>
-        )}
+        {/* 선택된 장 칩 (해당 권) */}
+        <div className="flex flex-wrap gap-1.5 bg-gray-50 rounded-md p-2 min-h-[36px] items-center">
+          <span className="text-xs text-gray-500 mr-1">{book} 체크할 장:</span>
+          {chaptersList.length === 0 && <span className="text-xs text-gray-400">없음 (빈 목록 = 그 권 전체 해제)</span>}
+          {chaptersList.map((c) => (
+            <span key={c} className="inline-flex items-center gap-1 bg-white border border-gray-300 rounded-full px-2 py-0.5 text-xs">
+              {c}장
+              <button className="text-gray-400 hover:text-red-500" onClick={() => removeChapter(c)}>✕</button>
+            </span>
+          ))}
+        </div>
 
         <div className="flex flex-wrap gap-2 items-center">
-          <label className="text-sm flex items-center gap-1">
-            <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} /> 체크함(true) / 해제(false)
-          </label>
           <button
             className={btn}
-            disabled={loading || pending.length === 0}
-            onClick={() => call("PATCH", "/api/v1/bible/progress", { checked, chapters: pending })}
+            disabled={loading}
+            onClick={() => call("PATCH", "/api/v1/bible/progress", { book_name: book, chapters: chaptersList })}
           >
-            선택한 {pending.length}개 일괄 적용 (PATCH)
+            {book} = 이 목록으로 교체 (PATCH)
           </button>
-          <button className={btn3} disabled={loading || pending.length === 0} onClick={() => setPending([])}>목록 비우기</button>
+          <button className={btn3} disabled={loading} onClick={() => setChaptersList([])}>목록 비우기</button>
         </div>
-        <p className="text-xs text-gray-400">팁: 책 고르고 시작=1, 끝=10 → "범위 추가" → "일괄 적용" 하면 10장이 한 번에 체크돼 나무 1그루를 받습니다.</p>
+        <p className="text-xs text-gray-400">
+          권 단위 replace: 이 목록이 곧 {book}의 “체크된 장 전체”가 됩니다. 10장 채우면 나무 1그루,
+          줄이면 응답의 <b>reclaimed_count</b>로 회수 확인. 빈 목록으로 보내면 그 권 전체 해제.
+        </p>
       </div>
 
       {/* 3. Trees */}
