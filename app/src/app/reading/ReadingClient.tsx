@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -64,6 +64,12 @@ function setEquals(a: Set<number>, b: Set<number>): boolean {
   return true;
 }
 
+type DragState = {
+  startCh: number;
+  currentCh: number;
+  mode: "add" | "remove";
+};
+
 export default function ReadingClient({
   initialProgress,
 }: {
@@ -73,11 +79,9 @@ export default function ReadingClient({
   const theme = useTheme();
   const [selectedBook, setSelectedBook] = useState<BookType>(NT_BOOKS[0]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  // 서버에 저장된 상태(권별)
   const [allProgress, setAllProgress] = useState<Map<string, Set<number>>>(
     () => buildProgressMap(initialProgress),
   );
-  // 편집 중인 체크 상태(권별) — 여러 권을 넘나들며 누적, 완료 시 바뀐 권만 한 번에 저장
   const [draftByBook, setDraftByBook] = useState<Map<string, Set<number>>>(() => {
     const m = new Map<string, Set<number>>();
     for (const { book_name, chapter } of initialProgress) {
@@ -86,18 +90,31 @@ export default function ReadingClient({
     }
     return m;
   });
-  // 범위 선택 앵커(같은 권 안에서 한 장 탭 → 다른 장 탭하면 그 사이를 채움)
-  const [anchorChapter, setAnchorChapter] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [earnedItems, setEarnedItems] = useState<string[]>([]);
   const [earnedIndex, setEarnedIndex] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // 현재 보고 있는 권의 draft
+  // 드래그 선택 상태
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [dragState, setDragState] = useState<DragState | null>(null);
+
   const draft = draftByBook.get(selectedBook.name) ?? new Set<number>();
 
-  // 저장본과 달라진 권 목록
+  // 드래그 중에는 미리보기 상태로 렌더링
+  const effectiveDraft: Set<number> = (() => {
+    if (!dragState) return draft;
+    const base = new Set(draft);
+    const lo = Math.min(dragState.startCh, dragState.currentCh);
+    const hi = Math.max(dragState.startCh, dragState.currentCh);
+    for (let c = lo; c <= hi; c++) {
+      if (dragState.mode === "add") base.add(c);
+      else base.delete(c);
+    }
+    return base;
+  })();
+
   const changedBooks = NT_BOOKS
     .map((b) => b.name)
     .filter((name) =>
@@ -108,30 +125,62 @@ export default function ReadingClient({
     );
   const dirty = changedBooks.length > 0;
 
-  function setCurrentBookDraft(chapters: Set<number>, anchor: number | null) {
+  function toggleChapter(ch: number) {
     setDraftByBook((prev) => {
       const next = new Map(prev);
-      next.set(selectedBook.name, chapters);
+      const cur = new Set(prev.get(selectedBook.name) ?? []);
+      if (cur.has(ch)) cur.delete(ch);
+      else cur.add(ch);
+      next.set(selectedBook.name, cur);
       return next;
     });
-    setAnchorChapter(anchor);
   }
 
-  // 장 탭: 선택됨이면 해제(앵커 초기화) / 앵커 있으면 범위 채움 / 없으면 단일 추가 + 앵커
-  function toggleChapter(ch: number) {
-    const cur = new Set(draftByBook.get(selectedBook.name) ?? []);
-    if (cur.has(ch)) {
-      cur.delete(ch);
-      setCurrentBookDraft(cur, null);
-    } else if (anchorChapter !== null) {
-      const lo = Math.min(anchorChapter, ch);
-      const hi = Math.max(anchorChapter, ch);
-      for (let c = lo; c <= hi; c++) cur.add(c);
-      setCurrentBookDraft(cur, ch);
+  function commitDragRange(startCh: number, currentCh: number, mode: "add" | "remove") {
+    setDraftByBook((prev) => {
+      const next = new Map(prev);
+      const base = new Set(prev.get(selectedBook.name) ?? []);
+      const lo = Math.min(startCh, currentCh);
+      const hi = Math.max(startCh, currentCh);
+      for (let c = lo; c <= hi; c++) {
+        if (mode === "add") base.add(c);
+        else base.delete(c);
+      }
+      next.set(selectedBook.name, base);
+      return next;
+    });
+  }
+
+  function getChapterAtPoint(x: number, y: number): number | null {
+    const el = document.elementFromPoint(x, y);
+    const attr = el?.closest("[data-chapter]")?.getAttribute("data-chapter");
+    return attr ? Number(attr) : null;
+  }
+
+  function handleGridPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    const ch = getChapterAtPoint(e.clientX, e.clientY);
+    if (ch === null) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const mode = draft.has(ch) ? "remove" : "add";
+    setDragState({ startCh: ch, currentCh: ch, mode });
+  }
+
+  function handleGridPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragState) return;
+    const ch = getChapterAtPoint(e.clientX, e.clientY);
+    if (ch === null || ch === dragState.currentCh) return;
+    setDragState((prev) => prev ? { ...prev, currentCh: ch } : null);
+  }
+
+  function handleGridPointerUp() {
+    if (!dragState) return;
+    const { startCh, currentCh, mode } = dragState;
+    if (startCh === currentCh) {
+      toggleChapter(startCh);
     } else {
-      cur.add(ch);
-      setCurrentBookDraft(cur, ch);
+      commitDragRange(startCh, currentCh, mode);
     }
+    setDragState(null);
   }
 
   function handleComplete() {
@@ -150,7 +199,6 @@ export default function ReadingClient({
     const res = await fetch("/api/v1/bible/progress", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      // 여러 권을 한 번에 bulk replace
       body: JSON.stringify({ books }),
     });
     setIsSubmitting(false);
@@ -160,7 +208,6 @@ export default function ReadingClient({
       return;
     }
     const data = await res.json();
-    // 저장본을 draft로 갱신 (바뀐 권만)
     setAllProgress((prev) => {
       const next = new Map(prev);
       for (const name of changedBooks) {
@@ -179,8 +226,7 @@ export default function ReadingClient({
   function selectBook(book: BookType) {
     setSelectedBook(book);
     setDropdownOpen(false);
-    setAnchorChapter(null);
-    // draft는 권별로 유지됨(초기화 안 함) → 여러 권 누적 선택 가능
+    setDragState(null);
   }
 
   return (
@@ -200,11 +246,17 @@ export default function ReadingClient({
         </button>
 
         {(() => {
-          const allOn = draft.size === selectedBook.chapters;
+          const allOn = effectiveDraft.size === selectedBook.chapters;
           const allChapters = Array.from({ length: selectedBook.chapters }, (_, i) => i + 1);
           return (
             <button
-              onClick={() => setCurrentBookDraft(allOn ? new Set() : new Set(allChapters), null)}
+              onClick={() => {
+                setDraftByBook((prev) => {
+                  const next = new Map(prev);
+                  next.set(selectedBook.name, allOn ? new Set() : new Set(allChapters));
+                  return next;
+                });
+              }}
               className="text-[14px] font-pretendard text-[#0FC8B8]"
             >
               {allOn ? "전체 해제" : "전체 선택"}
@@ -242,7 +294,7 @@ export default function ReadingClient({
 
       <div className="flex-1 overflow-y-auto px-5">
         {(() => {
-          const groups = buildPillGroups(draft);
+          const groups = buildPillGroups(effectiveDraft);
           const pillGroupStarts = new Map<number, number[]>();
           const pillNonFirsts = new Set<number>();
           for (const g of groups) {
@@ -253,7 +305,14 @@ export default function ReadingClient({
           }
 
           return (
-            <div className="grid grid-cols-6">
+            <div
+              ref={gridRef}
+              className="grid grid-cols-6 touch-none select-none"
+              onPointerDown={handleGridPointerDown}
+              onPointerMove={handleGridPointerMove}
+              onPointerUp={handleGridPointerUp}
+              onPointerCancel={handleGridPointerUp}
+            >
               {Array.from({ length: selectedBook.chapters }, (_, i) => i + 1).map((ch) => {
                 if (pillNonFirsts.has(ch)) return null;
 
@@ -270,33 +329,39 @@ export default function ReadingClient({
                         className="flex-1 h-10 rounded-full flex items-center overflow-hidden"
                       >
                         {pillGroup.map((c) => (
-                          <button
+                          <span
                             key={c}
-                            onClick={() => toggleChapter(c)}
-                            className="flex-1 h-full flex items-center justify-center text-[14px] font-medium font-pretendard text-white select-none"
+                            data-chapter={c}
+                            className="flex-1 h-full flex items-center justify-center text-[14px] font-medium font-pretendard text-white"
                           >
                             {c}
-                          </button>
+                          </span>
                         ))}
                       </div>
                     </div>
                   );
                 }
 
-                const isOn = draft.has(ch);
+                const isOn = effectiveDraft.has(ch);
+                const isDragTarget =
+                  dragState !== null &&
+                  ch >= Math.min(dragState.startCh, dragState.currentCh) &&
+                  ch <= Math.max(dragState.startCh, dragState.currentCh);
+
                 return (
-                  <div key={ch} className="h-12 flex items-center">
-                    <button
-                      onClick={() => toggleChapter(ch)}
+                  <div key={ch} data-chapter={ch} className="h-12 flex items-center">
+                    <span
+                      data-chapter={ch}
                       className={cn(
-                        "h-10 w-10 flex items-center justify-center text-[14px] font-medium font-pretendard transition-colors select-none rounded-full mx-auto",
+                        "h-10 w-10 flex items-center justify-center text-[14px] font-medium font-pretendard rounded-full mx-auto transition-transform",
                         !isOn && "border border-[#E0E0E0] bg-white text-[#AAAAAA]",
                         isOn && "text-white",
+                        isDragTarget && "scale-110",
                       )}
                       style={isOn ? { background: GRADIENT } : undefined}
                     >
                       {ch}
-                    </button>
+                    </span>
                   </div>
                 );
               })}
