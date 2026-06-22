@@ -138,9 +138,11 @@ export default function PlaceTreeContent({ plantedTrees, previewName, previewTea
           )}
 
           {/* 메인 화면 UI 레이아웃 고스트 */}
-          <div className="absolute inset-0 flex flex-col min-h-dvh pointer-events-none">
-            <div className="h-11" />
-            <div className="h-[60px] flex items-center justify-end px-4">
+          <div
+            className="absolute inset-0 flex flex-col min-h-dvh pointer-events-none"
+            style={{ paddingTop: "env(safe-area-inset-top)" }}
+          >
+            <div className="h-[44px] flex items-end pb-1 justify-end px-4">
               <button
                 onClick={() => setPreviewMode(false)}
                 className="pointer-events-auto h-[34px] px-4 rounded-full bg-black text-white text-[13px] font-medium font-pretendard"
@@ -148,7 +150,7 @@ export default function PlaceTreeContent({ plantedTrees, previewName, previewTea
                 미리보기 종료
               </button>
             </div>
-            <div className="px-6 pt-2 pb-2 flex items-start justify-between">
+            <div className="px-6 pt-0 pb-2 flex items-start justify-between">
               <div className="flex flex-col gap-1">
                 <div className="flex items-baseline gap-1.5">
                   <span className={cn("text-[24px] font-bold leading-none font-pretendard", textPrimary)}>
@@ -159,11 +161,11 @@ export default function PlaceTreeContent({ plantedTrees, previewName, previewTea
                   </span>
                 </div>
                 <p className={cn("text-[16px] font-pretendard", textMuted)}>
-                  팀 영혼들과 함께 나무를 심어보세요!
+                  {THEMES[theme].tagline}
                 </p>
               </div>
               <div className={cn(
-                "shrink-0 h-[34px] px-[14px] rounded-[20px] border text-[14px] font-pretendard flex items-center",
+                "mt-2 shrink-0 h-[34px] px-[14px] rounded-[20px] border text-[14px] font-pretendard flex items-center",
                 isDarkBg ? "border-white text-white" : "border-[#222222] text-[#222222]",
               )}>
                 내 보관함
@@ -172,11 +174,11 @@ export default function PlaceTreeContent({ plantedTrees, previewName, previewTea
             <div className="flex-1 relative">
               <div className="absolute bottom-0 left-0 right-0 px-6 pb-5">
                 <p className={cn("text-[15px] font-pretendard mb-0.5", isDarkBg ? "text-white/80" : "text-[#555555]")}>
-                  현재 우리 숲은?
+                  {THEMES[theme].statPhrase}
                 </p>
                 <div className="flex items-center gap-[3px] mb-1">
                   <span className={cn("text-[24px] font-semibold font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>—</span>
-                  <span className={cn("text-[24px] font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>그루</span>
+                  <span className={cn("text-[24px] font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>{THEMES[theme].unit}</span>
                   <div className={cn("w-1 h-1 rounded-full mx-[5px]", isDarkBg ? "bg-white/60" : "bg-[#2E9200]")} />
                   <span className={cn("text-[24px] font-semibold font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>—</span>
                   <span className={cn("text-[24px] font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>점</span>
@@ -203,7 +205,7 @@ export default function PlaceTreeContent({ plantedTrees, previewName, previewTea
                   ? "bg-white/15 text-white backdrop-blur-sm"
                   : "bg-white/80 backdrop-blur-sm border border-white/60 text-[#222222]",
               )}>
-                다른 숲 구경하러 가기
+                {THEMES[theme].forumsLabel}
               </div>
             </div>
           </div>

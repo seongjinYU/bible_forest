@@ -50,6 +50,7 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
   const [toast, setToast] = useState<ToastState>(null);
   const screenRef = useRef<HTMLDivElement>(null);
   const contentLayerRef = useRef<HTMLDivElement>(null);
+  const downloadOverlayRef = useRef<HTMLDivElement>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentTheme = THEMES[theme];
@@ -69,6 +70,7 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
     try {
       setToast(null);
       layer.style.visibility = "hidden";
+      if (downloadOverlayRef.current) downloadOverlayRef.current.style.visibility = "visible";
 
       // iOS Safari는 img.src 교체 후 onload가 완료돼야 캔버스에 그릴 수 있음
       const allImgs = Array.from(screenRef.current.querySelectorAll("img")) as HTMLImageElement[];
@@ -106,6 +108,7 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
 
       allImgs.forEach((img, i) => { img.src = originalSrcs[i]; });
       layer.style.visibility = "visible";
+      if (downloadOverlayRef.current) downloadOverlayRef.current.style.visibility = "hidden";
 
       if (!blob) return;
 
@@ -126,6 +129,7 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
       }
     } catch (err) {
       layer.style.visibility = "visible";
+      if (downloadOverlayRef.current) downloadOverlayRef.current.style.visibility = "hidden";
       // 사용자가 공유 시트를 닫은 경우는 에러 아님
       if (!(err instanceof Error && err.name === "AbortError")) {
         showToast("이미지 저장에 실패했습니다.");
@@ -165,6 +169,25 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
             />
           );
         })}
+      </div>
+
+      {/* 다운로드 전용 오버레이 — 이미지 캡처 시에만 표시 */}
+      <div
+        ref={downloadOverlayRef}
+        className="absolute inset-0 z-[2] pointer-events-none flex flex-col"
+        style={{ visibility: "hidden", paddingTop: "env(safe-area-inset-top)" }}
+      >
+        <div className="h-[44px]" />
+        <div className="px-6">
+          <div className="flex items-baseline gap-1.5">
+            <span className={`text-[24px] font-bold leading-none font-pretendard ${textPrimary}`}>
+              {name}
+            </span>
+            <span className={`text-[16px] font-pretendard ${textSecondary}`}>
+              {team}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* 콘텐츠 레이어 */}
