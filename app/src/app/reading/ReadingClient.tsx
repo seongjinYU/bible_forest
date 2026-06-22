@@ -86,6 +86,8 @@ export default function ReadingClient({
     }
     return m;
   });
+  // 범위 선택 앵커(같은 권 안에서 한 장 탭 → 다른 장 탭하면 그 사이를 채움)
+  const [anchorChapter, setAnchorChapter] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showEarned, setShowEarned] = useState(false);
@@ -106,23 +108,30 @@ export default function ReadingClient({
     );
   const dirty = changedBooks.length > 0;
 
-  function toggleChapter(ch: number) {
-    setDraftByBook((prev) => {
-      const next = new Map(prev);
-      const s = new Set(next.get(selectedBook.name) ?? []);
-      if (s.has(ch)) s.delete(ch);
-      else s.add(ch);
-      next.set(selectedBook.name, s);
-      return next;
-    });
-  }
-
-  function setCurrentBookDraft(chapters: Set<number>) {
+  function setCurrentBookDraft(chapters: Set<number>, anchor: number | null) {
     setDraftByBook((prev) => {
       const next = new Map(prev);
       next.set(selectedBook.name, chapters);
       return next;
     });
+    setAnchorChapter(anchor);
+  }
+
+  // 장 탭: 선택됨이면 해제(앵커 초기화) / 앵커 있으면 범위 채움 / 없으면 단일 추가 + 앵커
+  function toggleChapter(ch: number) {
+    const cur = new Set(draftByBook.get(selectedBook.name) ?? []);
+    if (cur.has(ch)) {
+      cur.delete(ch);
+      setCurrentBookDraft(cur, null);
+    } else if (anchorChapter !== null) {
+      const lo = Math.min(anchorChapter, ch);
+      const hi = Math.max(anchorChapter, ch);
+      for (let c = lo; c <= hi; c++) cur.add(c);
+      setCurrentBookDraft(cur, ch);
+    } else {
+      cur.add(ch);
+      setCurrentBookDraft(cur, ch);
+    }
   }
 
   function handleComplete() {
@@ -170,6 +179,7 @@ export default function ReadingClient({
   function selectBook(book: BookType) {
     setSelectedBook(book);
     setDropdownOpen(false);
+    setAnchorChapter(null);
     // draft는 권별로 유지됨(초기화 안 함) → 여러 권 누적 선택 가능
   }
 
@@ -194,7 +204,7 @@ export default function ReadingClient({
           const allChapters = Array.from({ length: selectedBook.chapters }, (_, i) => i + 1);
           return (
             <button
-              onClick={() => setCurrentBookDraft(allOn ? new Set() : new Set(allChapters))}
+              onClick={() => setCurrentBookDraft(allOn ? new Set() : new Set(allChapters), null)}
               className="text-[14px] font-pretendard text-[#0FC8B8]"
             >
               {allOn ? "전체 해제" : "전체 선택"}

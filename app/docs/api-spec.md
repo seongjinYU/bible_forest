@@ -216,7 +216,8 @@
 ## 4. Auth (인증)
 
 ### 4-1. `POST /api/v1/auth/register`
-닉네임 + 팀 선택으로 회원가입. 성공 시 `user_id` 세션 쿠키를 발급해 자동 로그인.
+닉네임 + 팀 선택. **같은 팀에 같은 닉네임이 이미 있으면 그 계정으로 자동 로그인,
+없으면 신규 가입.** 어느 경우든 `user_id` 세션 쿠키를 발급한다.
 
 **Request Body**
 ```json
@@ -230,10 +231,12 @@
 **처리 (BE)**
 1. `nickname`/`team_id` 누락 → `400`
 2. `team_id` 실재 여부 확인 → 없으면 `400`
-3. `users` insert
+3. `(team_id, nickname)`로 기존 사용자 조회 (중복 시 `created_at` 최솟값 1건)
+   - 있으면 그 계정으로 로그인 (insert 안 함) → `200`, `is_new=false`
+   - 없으면 `users` insert → `201`, `is_new=true`
 4. `user_id` 쿠키 설정 (`httpOnly`, `sameSite=lax`, `maxAge=60일`, `path=/`)
 
-**Response 201**
+**Response 201(신규) / 200(기존 로그인)**
 ```json
 {
   "user": {
@@ -244,10 +247,11 @@
     "trees_earned": 0,
     "special_tree_earned": false,
     "created_at": "2026-06-10T05:00:00Z"
-  }
+  },
+  "is_new": true
 }
 ```
-- `user`: 생성된 `users` 레코드 전체.
+- `user`: 해당 `users` 레코드 전체. `is_new`: 신규 가입이면 `true`, 기존 계정 자동 로그인이면 `false`.
 
 **에러**
 | status | message | 조건 |
@@ -465,7 +469,7 @@ challenges (활성 1개) ── 읽기 체크 기간 제약에만 사용
 | 컬럼 | 타입 | 제약 | 설명 |
 |------|------|------|------|
 | id | uuid | PK, default `gen_random_uuid()` | 세션 쿠키 `user_id` |
-| nickname | text | not null | 이름(동명이인 허용) |
+| nickname | text | not null | 이름. 팀 내 닉네임이 로그인 키 — 같은 팀·같은 닉네임은 동일 사용자로 취급(재로그인) |
 | team_id | uuid | FK→teams.id, not null | |
 | is_admin | boolean | default false | |
 | trees_earned | int | not null default 0 | 총 보유 일반나무 수 (A1 변경: 회수 시 **감소 가능**) |
