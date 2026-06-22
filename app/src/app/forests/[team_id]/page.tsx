@@ -116,7 +116,8 @@ export default async function ForestDetailPage({
         <div className="px-6 pb-safe pt-3">
           <Link
             href="/forests"
-            className={`w-full h-[48px] rounded-[8px] text-[16px] font-pretendard flex items-center justify-center ${
+            transitionTypes={["nav-back"]}
+            className={`press-fx w-full h-[48px] rounded-[8px] text-[16px] font-pretendard flex items-center justify-center ${
               isDarkBg
                 ? "bg-white/15 text-white backdrop-blur-sm"
                 : "bg-white/80 backdrop-blur-sm border border-white/60 text-[#222222]"

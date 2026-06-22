@@ -59,7 +59,8 @@ export default async function StoragePage() {
           <div className="px-5 pb-safe pt-3 shrink-0">
             <Link
               href="/"
-              className="w-full h-[54px] rounded-[8px] bg-[#F5F5F5] text-[#666666] text-[17px] font-medium font-noto flex items-center justify-center"
+              transitionTypes={["nav-back"]}
+              className="press-fx w-full h-[54px] rounded-[8px] bg-[#F5F5F5] text-[#666666] text-[17px] font-medium font-noto flex items-center justify-center"
             >
               이전
             </Link>
@@ -118,7 +119,8 @@ export default async function StoragePage() {
                     ) : (
                       <Link
                         href={`/place-tree?tree_id=${tree.id}&species=${tree.species}`}
-                        className="shrink-0 h-[36px] px-4 rounded-full border border-[#222222] text-[#222222] text-[14px] font-pretendard flex items-center"
+                        transitionTypes={["nav-forward"]}
+                        className="press-fx shrink-0 h-[36px] px-4 rounded-full border border-[#222222] text-[#222222] text-[14px] font-pretendard flex items-center"
                       >
                         배치하기
                       </Link>
@@ -142,7 +144,8 @@ export default async function StoragePage() {
           <div className="px-5 pb-safe pt-3 shrink-0">
             <Link
               href="/"
-              className="w-full h-[54px] rounded-[8px] bg-[#F5F5F5] text-[#666666] text-[17px] font-medium font-noto flex items-center justify-center"
+              transitionTypes={["nav-back"]}
+              className="press-fx w-full h-[54px] rounded-[8px] bg-[#F5F5F5] text-[#666666] text-[17px] font-medium font-noto flex items-center justify-center"
             >
               이전
             </Link>

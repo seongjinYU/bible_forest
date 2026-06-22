@@ -104,11 +104,11 @@ export default function ForestsCardGrid({
 
   function handleView(team: TeamStat) {
     if (team.id === myTeamId) {
-      router.push("/");
+      router.push("/", { transitionTypes: ["nav-back"] });
     } else if (!team.theme && team.score === 0 && team.tree_count === 0) {
       setShowNoThemePopup(true);
     } else {
-      router.push(`/forests/${team.id}`);
+      router.push(`/forests/${team.id}`, { transitionTypes: ["nav-forward"] });
     }
   }
 

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
+import TransitionShell from "@/components/TransitionShell";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { getSessionUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
@@ -49,7 +50,9 @@ export default async function RootLayout({
     <html lang="ko" className={`${notoSansKR.variable} h-full`}>
       <body className="h-full">
         <div className="w-full h-full bg-white flex flex-col relative overflow-hidden" style={{ overscrollBehavior: "none" }}>
-          <ThemeProvider theme={theme}>{children}</ThemeProvider>
+          <ThemeProvider theme={theme}>
+            <TransitionShell>{children}</TransitionShell>
+          </ThemeProvider>
         </div>
       </body>
     </html>

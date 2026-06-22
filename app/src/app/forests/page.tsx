@@ -146,7 +146,8 @@ export default async function ForestsPage() {
       {/* Floating 버튼 — absolute, 배경 컨테이너 없음 */}
       <Link
         href="/"
-        className="absolute left-5 right-5 h-[52px] rounded-full flex items-center justify-center text-white text-[16px] font-noto font-medium"
+        transitionTypes={["nav-back"]}
+        className="press-fx absolute left-5 right-5 h-[52px] rounded-full flex items-center justify-center text-white text-[16px] font-noto font-medium"
         style={{
           bottom: "max(1.25rem, calc(env(safe-area-inset-bottom) + 0.75rem))",
           background: "#31C678",

@@ -170,3 +170,57 @@
 .animate-ticker-in {
   animation: ticker-in 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* ───────────────────────────────────────────────
+   버튼 눌림(press) 피드백 — 누르는 동안 축소 + 흐려져 탭 반응을 전달.
+   @layer 밖(unlayered)에 둬서 Tailwind 유틸리티(@layer utilities)보다
+   확실히 우선 적용된다. 강도 조절: --press-scale / --press-opacity.
+   ─────────────────────────────────────────────── */
+:root {
+  --press-scale: 0.93;
+  --press-opacity: 0.8;
+}
+button,
+.press-fx {
+  transition: transform 0.12s ease, opacity 0.12s ease;
+  -webkit-tap-highlight-color: transparent; /* 모바일 기본 회색 하이라이트 제거 */
+}
+button:not(:disabled):active,
+.press-fx:active {
+  transform: scale(var(--press-scale));
+  opacity: var(--press-opacity);
+}
+
+/* ───────────────────────────────────────────────
+   화면 전환: 방향성 슬라이드 (네이티브 push/pop)
+   components/TransitionShell 의 <ViewTransition key={pathname}> +
+   Link/router 의 transitionTypes (nav-forward / nav-back) 와 짝을 이룬다.
+   필름스트립 방식: 두 화면이 겹치지 않고 나란히 한 방향으로 이동.
+   ─────────────────────────────────────────────── */
+:root {
+  --vt-duration: 380ms;
+  --vt-ease: cubic-bezier(0.22, 0.61, 0.36, 1); /* ease-out, 자연스러운 감속 */
+}
+
+@keyframes vt-from-right { from { transform: translateX(100%);  } to { transform: translateX(0); } }
+@keyframes vt-to-left    { from { transform: translateX(0);     } to { transform: translateX(-100%); } }
+@keyframes vt-from-left  { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes vt-to-right   { from { transform: translateX(0);     } to { transform: translateX(100%); } }
+
+/* 앞으로: 새 화면이 오른쪽에서 들어오고, 이전 화면은 왼쪽으로 밀려남 */
+::view-transition-old(.nav-forward) { animation: var(--vt-duration) var(--vt-ease) both vt-to-left; }
+::view-transition-new(.nav-forward) { animation: var(--vt-duration) var(--vt-ease) both vt-from-right; }
+
+/* 뒤로: 새 화면이 왼쪽에서 들어오고, 이전 화면은 오른쪽으로 밀려남 */
+::view-transition-old(.nav-back)    { animation: var(--vt-duration) var(--vt-ease) both vt-to-right; }
+::view-transition-new(.nav-back)    { animation: var(--vt-duration) var(--vt-ease) both vt-from-left; }
+
+/* 모션 민감 사용자: 즉시 전환(기존 동작) */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}
