@@ -69,7 +69,7 @@ export default function RegisterPage() {
     }
     // 신규 가입
     if (isFirstMember) {
-      router.push(`/select-theme?team_id=${selectedTeam.id}`);
+      router.push(`/select-theme?team_id=${selectedTeam.id}`, { transitionTypes: ["nav-forward"] });
     } else {
       setStep(3);
     }
@@ -87,7 +87,7 @@ export default function RegisterPage() {
             </h1>
           </div>
           <button
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/", { transitionTypes: ["nav-forward"] })}
             className="w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[20px] font-medium font-noto"
           >
             확인
@@ -112,7 +112,7 @@ export default function RegisterPage() {
             </p>
           </div>
           <button
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/", { transitionTypes: ["nav-forward"] })}
             className="w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[20px] font-medium font-noto"
           >
             확인

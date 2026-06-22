@@ -172,7 +172,7 @@ export default function ReadingClient({
       setEarnedItems(data.newly_earned.map((i: { species: string }) => i.species));
       setEarnedIndex(0);
     } else {
-      router.push("/");
+      router.push("/", { transitionTypes: ["nav-back"] });
     }
   }
 
@@ -313,7 +313,7 @@ export default function ReadingClient({
 
       <div className="px-5 pb-safe pt-3 flex gap-3 shrink-0">
         <button
-          onClick={() => router.push("/")}
+          onClick={() => router.push("/", { transitionTypes: ["nav-back"] })}
           className="w-[88px] h-[54px] rounded-[8px] bg-[#F5F5F5] text-[#666666] text-[17px] font-medium font-noto shrink-0"
         >
           이전
@@ -363,7 +363,7 @@ export default function ReadingClient({
       <Dialog
         open={earnedItems.length > 0}
         onOpenChange={(open) => {
-          if (!open) { setEarnedItems([]); router.push("/"); }
+          if (!open) { setEarnedItems([]); router.push("/", { transitionTypes: ["nav-back"] }); }
         }}
       >
         <DialogContent showCloseButton={false} className="p-0 gap-0 rounded-[12px]">
@@ -375,7 +375,7 @@ export default function ReadingClient({
             const total = earnedItems.length;
             const isLast = earnedIndex === total - 1;
 
-            function closeEarned() { setEarnedItems([]); router.push("/"); }
+            function closeEarned() { setEarnedItems([]); router.push("/", { transitionTypes: ["nav-back"] }); }
             function nextEarned() {
               if (!isLast) setEarnedIndex((i) => i + 1);
               else closeEarned();

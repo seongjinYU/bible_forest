@@ -24,6 +24,7 @@ interface MainScreenProps {
   team: string;
   stats: Stats;
   plantedTrees: PlantedTree[];
+  storageCount: number;
 }
 
 const INFO_ITEMS = [
@@ -43,7 +44,7 @@ const INFO_ITEMS = [
 
 type ToastState = { message: string; action?: { label: string; onClick: () => void } } | null;
 
-export default function MainScreen({ name, team, stats, plantedTrees }: MainScreenProps) {
+export default function MainScreen({ name, team, stats, plantedTrees, storageCount }: MainScreenProps) {
   const router = useRouter();
   const theme = useTheme();
   const [helpOpen, setHelpOpen] = useState(false);
@@ -229,12 +230,38 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
             </p>
           </div>
           <button
-            onClick={() => router.push("/storage")}
+            onClick={() => router.push("/storage", { transitionTypes: ["nav-forward"] })}
+            style={{ position: "relative" }}
             className={`mt-2 shrink-0 h-[34px] px-[14px] rounded-[20px] border text-[14px] font-pretendard ${
               isDarkBg ? "border-white text-white" : "border-[#222222] text-[#222222]"
             }`}
           >
             내 보관함
+            {storageCount > 0 && (
+              <span
+                style={{
+                  position: "absolute",
+                  top: -7,
+                  right: -7,
+                  minWidth: 20,
+                  height: 20,
+                  padding: "0 5px",
+                  borderRadius: 9999,
+                  backgroundColor: "#F32F15",
+                  color: "#fff",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  lineHeight: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                }}
+                aria-label={`보관중 ${storageCount}개`}
+              >
+                {storageCount > 99 ? "99+" : storageCount}
+              </span>
+            )}
           </button>
         </div>
 
@@ -265,7 +292,7 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
                 <span className={`text-[18px] font-pretendard ${isDarkBg ? "text-white/80" : "text-[#555555]"}`}>명</span>
               </div>
               <button
-                onClick={() => router.push("/reading")}
+                onClick={() => router.push("/reading", { transitionTypes: ["nav-forward"] })}
                 className="h-[40px] px-5 rounded-full text-white text-[15px] font-semibold font-pretendard"
                 style={{ backgroundColor: currentTheme.color }}
               >
@@ -278,7 +305,7 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
         {/* 다른 숲 */}
         <div className="px-6 pb-safe pt-3">
           <button
-            onClick={() => router.push("/forests")}
+            onClick={() => router.push("/forests", { transitionTypes: ["nav-forward"] })}
             className={`w-full h-[48px] rounded-[8px] text-[16px] font-pretendard ${
               isDarkBg
                 ? "bg-white/15 text-white backdrop-blur-sm"

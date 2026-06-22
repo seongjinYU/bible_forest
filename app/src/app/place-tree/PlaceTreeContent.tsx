@@ -90,7 +90,7 @@ export default function PlaceTreeContent({ plantedTrees, previewName, previewTea
       return;
     }
 
-    router.push("/storage");
+    router.push("/storage", { transitionTypes: ["nav-back"] });
   }
 
   return (
@@ -326,7 +326,7 @@ export default function PlaceTreeContent({ plantedTrees, previewName, previewTea
           )}
           <div className="flex gap-3">
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push("/storage", { transitionTypes: ["nav-back"] })}
               className="w-[88px] h-[54px] rounded-[8px] bg-white/20 text-white text-[17px] font-medium font-noto shrink-0"
             >
               이전
