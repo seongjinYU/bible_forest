@@ -14,7 +14,7 @@ export default async function Home() {
 
   const [teamRes, usersRes, plantedRes] = await Promise.all([
     supabase.from("teams").select("name").eq("id", user.team_id).single(),
-    supabase.from("users").select("trees(points), bible_progress(count)").eq("team_id", user.team_id),
+    supabase.from("users").select("bible_progress(count)").eq("team_id", user.team_id),
     supabase
       .from("trees")
       .select("species, x, y")
@@ -24,16 +24,15 @@ export default async function Home() {
 
   const teamData = teamRes.data as { name: string } | null;
 
-  type UserRow = { trees: { points: number }[]; bible_progress: { count: number }[] };
+  type UserRow = { bible_progress: { count: number }[] };
   const usersData = (usersRes.data ?? []) as UserRow[];
+  const plantedTrees = (plantedRes.data ?? []) as { species: string; x: number; y: number }[];
 
   const stats = {
-    trees: usersData.flatMap((u) => u.trees).length,
+    trees: plantedTrees.length,
     score: usersData.reduce((sum, u) => sum + (u.bible_progress[0]?.count ?? 0), 0),
     participants: usersData.length,
   };
-
-  const plantedTrees = (plantedRes.data ?? []) as { species: string; x: number; y: number }[];
 
   return (
     <MainScreen
