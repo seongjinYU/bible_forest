@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TEAMS } from "@/constants/teams";
 import { THEMES } from "@/constants/themes";
 import type { ThemeKey } from "@/constants/themes";
 
@@ -13,42 +13,68 @@ interface Team {
   theme: ThemeKey;
 }
 
-const STORAGE_KEY = "admin_teams";
-
-const DEFAULT_TEAMS: Team[] = TEAMS.map((name, i) => ({
-  id: String(i + 1),
-  name,
-  theme: "forest" as ThemeKey,
-}));
-
 export default function TeamsPage() {
+  const router = useRouter();
   const [teams, setTeams]     = useState<Team[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState("");
   const [newName, setNewName] = useState("");
 
-  useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    setTeams(raw ? JSON.parse(raw) : DEFAULT_TEAMS);
-  }, []);
+  const load = useCallback(async () => {
+    const res = await fetch("/api/v1/admin/teams");
+    if (res.status === 403) { router.replace("/admin"); return; }
+    if (!res.ok) { setError("팀을 불러오지 못했습니다."); setLoading(false); return; }
+    const data = await res.json();
+    setTeams(data.teams ?? []);
+    setLoading(false);
+  }, [router]);
 
-  function save(updated: Team[]) {
-    setTeams(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  }
+  useEffect(() => { load(); }, [load]);
 
-  function addTeam(e: React.FormEvent) {
+  async function addTeam(e: React.FormEvent) {
     e.preventDefault();
     if (!newName.trim()) return;
-    save([...teams, { id: Date.now().toString(), name: newName.trim(), theme: "forest" as ThemeKey }]);
+    setError("");
+    const res = await fetch("/api/v1/admin/teams", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName.trim() }),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setError(d.message ?? "팀 추가에 실패했습니다.");
+      return;
+    }
     setNewName("");
+    await load();
   }
 
-  function setTheme(id: string, theme: ThemeKey) {
-    save(teams.map((t) => t.id === id ? { ...t, theme } : t));
+  async function setTheme(id: string, theme: ThemeKey) {
+    setError("");
+    const prev = teams;
+    setTeams(teams.map((t) => (t.id === id ? { ...t, theme } : t))); // 낙관적 반영
+    const res = await fetch(`/api/v1/admin/teams/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ theme }),
+    });
+    if (!res.ok) {
+      setTeams(prev); // 실패 시 되돌림
+      const d = await res.json().catch(() => ({}));
+      setError(d.message ?? "테마 변경에 실패했습니다.");
+    }
   }
 
-  function deleteTeam(id: string) {
+  async function deleteTeam(id: string) {
     if (!confirm("팀을 삭제하시겠습니까?")) return;
-    save(teams.filter((t) => t.id !== id));
+    setError("");
+    const res = await fetch(`/api/v1/admin/teams/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setError(d.message ?? "팀 삭제에 실패했습니다.");
+      return;
+    }
+    await load();
   }
 
   return (
@@ -78,42 +104,56 @@ export default function TeamsPage() {
         </form>
       </div>
 
-      <div className="flex flex-col gap-3">
-        {teams.map((team) => (
-          <div key={team.id} className="bg-white rounded-2xl border border-gray-100 px-5 py-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-xl shrink-0"
-                style={{ background: THEMES[team.theme].pageBackground }}
-              />
-              <span className="text-[15px] font-semibold text-gray-900 font-noto">{team.name}</span>
-            </div>
+      {error && <p className="mb-4 text-sm text-red-500 font-pretendard">{error}</p>}
 
-            <div className="flex items-center gap-2">
-              {(Object.keys(THEMES) as ThemeKey[]).map((key) => (
-                <button
-                  key={key}
-                  onClick={() => setTheme(team.id, key)}
-                  className={cn(
-                    "flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] border transition-colors font-pretendard",
-                    team.theme === key
-                      ? "border-[#31C678] bg-[#F6FEF8] text-[#31C678] font-medium"
-                      : "border-gray-200 text-gray-400 hover:bg-gray-50"
-                  )}
-                >
-                  {THEMES[key].icon} {THEMES[key].label}
-                </button>
-              ))}
-              <button
-                onClick={() => deleteTeam(team.id)}
-                className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-300 hover:bg-red-50 hover:border-red-200 hover:text-red-400 transition-colors"
-              >
-                <Trash2 size={13} />
-              </button>
+      {loading ? (
+        <p className="text-sm text-gray-400 font-pretendard">불러오는 중...</p>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {teams.length === 0 && (
+            <div className="text-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-100">
+              <p className="text-[15px] font-pretendard">등록된 팀이 없습니다</p>
             </div>
-          </div>
-        ))}
-      </div>
+          )}
+          {teams.map((team) => {
+            const themeInfo = THEMES[team.theme] ?? THEMES.forest;
+            return (
+              <div key={team.id} className="bg-white rounded-2xl border border-gray-100 px-5 py-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-xl shrink-0 border border-gray-100"
+                    style={{ background: themeInfo.pageBackground }}
+                  />
+                  <span className="text-[15px] font-semibold text-gray-900 font-noto">{team.name}</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {(Object.keys(THEMES) as ThemeKey[]).map((key) => (
+                    <button
+                      key={key}
+                      onClick={() => setTheme(team.id, key)}
+                      className={cn(
+                        "flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] border transition-colors font-pretendard",
+                        team.theme === key
+                          ? "border-[#31C678] bg-[#F6FEF8] text-[#31C678] font-medium"
+                          : "border-gray-200 text-gray-400 hover:bg-gray-50"
+                      )}
+                    >
+                      {THEMES[key].icon} {THEMES[key].label}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => deleteTeam(team.id)}
+                    className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-300 hover:bg-red-50 hover:border-red-200 hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
