@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Download, AlertCircle } from "lucide-react";
-import { toBlob } from "html-to-image";
 import { THEMES } from "@/constants/themes";
 import { useTheme } from "@/context/ThemeContext";
 
@@ -49,7 +48,6 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
   const [helpOpen, setHelpOpen] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
   const screenRef = useRef<HTMLDivElement>(null);
-  const contentLayerRef = useRef<HTMLDivElement>(null);
   const downloadOverlayRef = useRef<HTMLDivElement>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -65,52 +63,98 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
   }
 
   async function handleDownload() {
-    if (!screenRef.current || !contentLayerRef.current) return;
-    const layer = contentLayerRef.current;
+    if (!screenRef.current || !downloadOverlayRef.current) return;
     try {
       setToast(null);
-      layer.style.visibility = "hidden";
-      if (downloadOverlayRef.current) downloadOverlayRef.current.style.visibility = "visible";
 
-      // iOS Safari는 img.src 교체 후 onload가 완료돼야 캔버스에 그릴 수 있음
-      const allImgs = Array.from(screenRef.current.querySelectorAll("img")) as HTMLImageElement[];
-      const originalSrcs = allImgs.map((img) => img.src);
+      // fetch → objectURL 방식: 브라우저 이미지 캐시를 우회해 canvas taint 없이 로드
+      async function loadImg(src: string): Promise<HTMLImageElement> {
+        try {
+          const resp = await fetch(src);
+          const blob = await resp.blob();
+          const objUrl = URL.createObjectURL(blob);
+          return await new Promise<HTMLImageElement>((resolve) => {
+            const img = new Image();
+            img.onload = () => { URL.revokeObjectURL(objUrl); resolve(img); };
+            img.onerror = () => { URL.revokeObjectURL(objUrl); resolve(img); };
+            img.src = objUrl;
+          });
+        } catch {
+          return await new Promise<HTMLImageElement>((resolve) => {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => resolve(img);
+            img.onerror = () => resolve(img);
+            img.src = src;
+          });
+        }
+      }
+
+      const screenRect = screenRef.current.getBoundingClientRect();
+      const W = screenRect.width;
+      const H = screenRect.height;
+      const dpr = window.devicePixelRatio || 2;
+
+      // 필요한 이미지 병렬 로드
+      const bgSrc = `/assets/${theme}/bg.png`;
+      const treeSrcs = [...new Set(
+        plantedTrees
+          .map((t) => Number(t.species))
+          .filter((n) => !isNaN(n) && n > 0)
+          .map((n) => `/assets/${theme}/${n}.png`),
+      )];
+      const imgMap = new Map<string, HTMLImageElement>();
       await Promise.all(
-        allImgs.map(async (img, i) => {
-          try {
-            const resp = await fetch(originalSrcs[i]);
-            const imgBlob = await resp.blob();
-            const dataUrl = await new Promise<string>((res, rej) => {
-              const reader = new FileReader();
-              reader.onload = () => res(reader.result as string);
-              reader.onerror = rej;
-              reader.readAsDataURL(imgBlob);
-            });
-            await new Promise<void>((res) => {
-              img.onload = () => res();
-              img.onerror = () => res();
-              img.src = dataUrl;
-              // 혹시 이미 로드된 경우(캐시) 즉시 resolve
-              if (img.complete && img.naturalWidth > 0) res();
-            });
-          } catch {
-            // 실패 시 원본 src 유지
-          }
-        })
+        [bgSrc, ...treeSrcs].map(async (src) => { imgMap.set(src, await loadImg(src)); })
       );
 
-      // 모든 이미지 로드 완료 후 렌더 사이클 2회 대기
-      await new Promise<void>((res) => requestAnimationFrame(() => requestAnimationFrame(() => res())));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      const ctx = canvas.getContext("2d")!;
+      ctx.scale(dpr, dpr);
 
-      const blob = await toBlob(screenRef.current, {
-        pixelRatio: window.devicePixelRatio || 2,
-      });
+      // 1. 배경 (object-cover 시뮬레이션)
+      const bg = imgMap.get(bgSrc)!;
+      if (bg.naturalWidth > 0) {
+        const s = Math.max(W / bg.naturalWidth, H / bg.naturalHeight);
+        const bw = bg.naturalWidth * s;
+        const bh = bg.naturalHeight * s;
+        ctx.drawImage(bg, (W - bw) / 2, (H - bh) / 2, bw, bh);
+      }
 
-      allImgs.forEach((img, i) => { img.src = originalSrcs[i]; });
-      layer.style.visibility = "visible";
-      if (downloadOverlayRef.current) downloadOverlayRef.current.style.visibility = "hidden";
+      // 2. 배치된 나무
+      for (const tree of plantedTrees) {
+        const num = Number(tree.species);
+        if (isNaN(num) || num <= 0) continue;
+        const ti = imgMap.get(`/assets/${theme}/${num}.png`);
+        if (!ti || ti.naturalWidth === 0) continue;
+        const sz = 48; // w-12 h-12
+        ctx.drawImage(ti, (tree.x / 100) * W - sz / 2, (tree.y / 100) * H - sz * 0.9, sz, sz);
+      }
 
-      if (!blob) return;
+      // 3. 닉네임 + 팀명 (visibility:hidden 상태에서도 getBoundingClientRect 는 정확함)
+      await document.fonts.ready;
+      const nameEl = downloadOverlayRef.current.querySelector<HTMLElement>('[data-dl="name"]');
+      const teamEl = downloadOverlayRef.current.querySelector<HTMLElement>('[data-dl="team"]');
+      const nameR = nameEl?.getBoundingClientRect();
+      const teamR = teamEl?.getBoundingClientRect();
+      if (nameR) {
+        ctx.font = `bold 24px 'Pretendard Variable', Pretendard, sans-serif`;
+        ctx.fillStyle = isDarkBg ? "rgba(255,255,255,1)" : "#222222";
+        ctx.textBaseline = "bottom";
+        ctx.fillText(name, nameR.left - screenRect.left, nameR.bottom - screenRect.top);
+      }
+      if (teamR) {
+        ctx.font = `16px 'Pretendard Variable', Pretendard, sans-serif`;
+        ctx.fillStyle = isDarkBg ? "rgba(255,255,255,0.7)" : "#999999";
+        ctx.textBaseline = "bottom";
+        ctx.fillText(team, teamR.left - screenRect.left, teamR.bottom - screenRect.top);
+      }
+
+      // 4. 내보내기
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (!blob) { showToast("이미지 저장에 실패했습니다."); return; }
 
       const file = new File([blob], "bible-forest.png", { type: "image/png" });
       if (navigator.canShare?.({ files: [file] })) {
@@ -118,7 +162,6 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
       } else if (navigator.share) {
         await navigator.share({ title: "팀 숲 성경읽기", text: "함께 심고 함께 자라는 팀 숲 성경읽기 챌린지" });
       } else {
-        // 데스크톱 폴백
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -128,9 +171,6 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
         showToast("이미지가 저장되었습니다!");
       }
     } catch (err) {
-      layer.style.visibility = "visible";
-      if (downloadOverlayRef.current) downloadOverlayRef.current.style.visibility = "hidden";
-      // 사용자가 공유 시트를 닫은 경우는 에러 아님
       if (!(err instanceof Error && err.name === "AbortError")) {
         showToast("이미지 저장에 실패했습니다.");
       }
@@ -180,10 +220,10 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
         <div className="h-[44px]" />
         <div className="px-6">
           <div className="flex items-baseline gap-1.5">
-            <span className={`text-[24px] font-bold leading-none font-pretendard ${textPrimary}`}>
+            <span data-dl="name" className={`text-[24px] font-bold leading-none font-pretendard ${textPrimary}`}>
               {name}
             </span>
-            <span className={`text-[16px] font-pretendard ${textSecondary}`}>
+            <span data-dl="team" className={`text-[16px] font-pretendard ${textSecondary}`}>
               {team}
             </span>
           </div>
@@ -191,7 +231,7 @@ export default function MainScreen({ name, team, stats, plantedTrees }: MainScre
       </div>
 
       {/* 콘텐츠 레이어 */}
-      <div ref={contentLayerRef} className="relative z-10 flex flex-col min-h-dvh" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+      <div className="relative z-10 flex flex-col min-h-dvh" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         {/* AppBar */}
         <div className="h-[44px] flex items-end pb-1 justify-between px-4">
           <div className="w-10 h-10" />
