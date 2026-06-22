@@ -57,11 +57,17 @@ export default function RegisterPage() {
       body: JSON.stringify({ nickname: name.trim(), team_id: selectedTeam.id }),
     });
     setIsSubmitting(false);
+    const data = await res.json();
     if (!res.ok) {
-      const data = await res.json();
       setErrorMessage(data.message ?? "회원가입에 실패했습니다.");
       return;
     }
+    // 이미 있는 닉네임이면 자동 로그인 → 바로 홈으로
+    if (!data.is_new) {
+      router.push("/");
+      return;
+    }
+    // 신규 가입
     if (isFirstMember) {
       router.push(`/select-theme?team_id=${selectedTeam.id}`);
     } else {

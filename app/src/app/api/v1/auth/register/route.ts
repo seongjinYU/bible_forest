@@ -22,14 +22,33 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: '유효하지 않은 팀입니다.' }, { status: 400 })
   }
 
-  const { data: user, error } = await supabase
+  // 같은 팀에 같은 닉네임이 이미 있으면 그 계정으로 자동 로그인한다.
+  // (닉네임 유니크 제약이 없어 과거 동명이인 정책으로 중복 생성됐을 수 있으므로
+  //  가장 먼저 만들어진 계정을 사용)
+  const { data: existing } = await supabase
     .from('users')
-    .insert({ nickname, team_id })
-    .select()
-    .single()
+    .select('*')
+    .eq('team_id', team_id)
+    .eq('nickname', nickname)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
 
-  if (error) {
-    return NextResponse.json({ message: '회원가입에 실패했습니다.' }, { status: 500 })
+  let user = existing
+  let isNew = false
+
+  if (!user) {
+    const { data: created, error } = await supabase
+      .from('users')
+      .insert({ nickname, team_id })
+      .select()
+      .single()
+
+    if (error || !created) {
+      return NextResponse.json({ message: '회원가입에 실패했습니다.' }, { status: 500 })
+    }
+    user = created
+    isNew = true
   }
 
   const cookieStore = await cookies()
@@ -40,5 +59,6 @@ export async function POST(request: NextRequest) {
     path: '/',
   })
 
-  return NextResponse.json({ user }, { status: 201 })
+  // 신규 가입은 201, 기존 계정 자동 로그인은 200. is_new로 프론트가 분기한다.
+  return NextResponse.json({ user, is_new: isNew }, { status: isNew ? 201 : 200 })
 }
