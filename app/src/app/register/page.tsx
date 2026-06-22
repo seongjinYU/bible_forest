@@ -16,7 +16,7 @@ interface Team {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [name, setName] = useState("");
@@ -62,9 +62,9 @@ export default function RegisterPage() {
       setErrorMessage(data.message ?? "회원가입에 실패했습니다.");
       return;
     }
-    // 이미 있는 닉네임이면 자동 로그인 → 바로 홈으로
+    // 기존 계정 자동 로그인 → 환영 화면
     if (!data.is_new) {
-      router.push("/");
+      setStep(4);
       return;
     }
     // 신규 가입
@@ -81,12 +81,34 @@ export default function RegisterPage() {
         <div className="h-11" />
         <div className="h-[62px]" />
         <div className="flex-1 flex flex-col justify-between px-4 pb-safe">
-          <div className="flex-1 flex flex-col items-center justify-center gap-6">
+          <div className="flex-1 flex flex-col items-center justify-center">
             <h1 className="text-[24px] font-bold leading-[32px] tracking-[-3%] text-[#222222] text-center font-noto whitespace-pre-line">
               {"회원가입이\n완료되었습니다!"}
             </h1>
-            <p className="text-[16px] font-normal leading-[24px] tracking-[-3%] text-[#F32F15] text-center font-noto whitespace-pre-line">
-              {"다른 기기에서 미션 참여할 시 기록이 사라집니다"}
+          </div>
+          <button
+            onClick={() => router.push("/")}
+            className="w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[20px] font-medium font-noto"
+          >
+            확인
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 4) {
+    return (
+      <div className="flex flex-col h-dvh bg-white">
+        <div className="h-11" />
+        <div className="h-[62px]" />
+        <div className="flex-1 flex flex-col justify-between px-4 pb-safe">
+          <div className="flex-1 flex flex-col items-center justify-center gap-3">
+            <h1 className="text-[24px] font-bold leading-[32px] tracking-[-3%] text-[#222222] text-center font-noto whitespace-pre-line">
+              {"다시 돌아오셨군요!"}
+            </h1>
+            <p className="text-[16px] font-normal leading-[24px] tracking-[-3%] text-[#888888] text-center font-noto">
+              {selectedTeam?.name} {name.trim()}님, 반갑습니다!
             </p>
           </div>
           <button
