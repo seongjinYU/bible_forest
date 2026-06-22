@@ -11,6 +11,9 @@ import { getSessionUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { TOTAL_NT_CHAPTERS } from "@/constants/bible";
 
+// 콜드스타트 완화: 홈 화면이 매번 호출하는 경량 읽기 전용 라우트 → Edge 전환.
+export const runtime = "edge";
+
 export async function GET() {
   const user = await getSessionUser();
   if (!user) {

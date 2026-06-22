@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
+// 콜드스타트 완화: 이 라우트는 DB(Supabase) 접근이 없어 Edge로 안전하게 전환 가능.
+export const runtime = 'edge'
+
 export async function POST(request: NextRequest) {
   const { password } = await request.json()
 

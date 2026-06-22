@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase'
 
+// 콜드스타트 완화: 읽기 전용·병렬 1왕복 → Edge 전환. (리전 미지정 = 사용자 근처 실행)
+export const runtime = 'edge'
+
 export async function GET() {
   const supabase = createSupabaseServerClient()
 

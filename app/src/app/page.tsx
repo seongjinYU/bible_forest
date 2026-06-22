@@ -3,6 +3,9 @@ import MainScreen from "@/components/MainScreen";
 import { getSessionUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
 
+// 콜드스타트 완화: 엔트리 SSR을 Edge로. (리전 미지정 = 사용자 근처 자동 실행)
+export const runtime = "edge";
+
 export default async function Home() {
   const user = await getSessionUser();
   if (!user) redirect("/register");
