@@ -32,12 +32,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.push("/admin");
   }
 
-  if (isLogin) return <>{children}</>;
+  // 어드민은 루트의 모바일 셸(h-full overflow-hidden)을 fixed로 탈출해 전체 화면 + 자체 스크롤.
+  if (isLogin) {
+    return <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-50">{children}</div>;
+  }
 
   // 세션 확인 전에는 내용을 숨겨 깜빡임/노출을 막는다.
   if (!authed) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50">
         <span className="text-sm text-gray-400 font-pretendard">확인 중...</span>
       </div>
     );
@@ -50,8 +53,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-white border-b border-gray-100 h-14 flex items-center px-6 justify-between shrink-0">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-50">
+      <header className="sticky top-0 z-10 bg-white border-b border-gray-100 h-14 flex items-center px-6 justify-between">
         <div className="flex items-center gap-2">
           <span className="text-xl">🌲</span>
           <span className="font-bold text-gray-900 text-[16px] font-noto">팀 숲 관리자</span>
@@ -84,7 +87,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </button>
       </header>
 
-      <main className="flex-1 px-6 py-6">{children}</main>
+      <main className="px-6 py-6">{children}</main>
     </div>
   );
 }

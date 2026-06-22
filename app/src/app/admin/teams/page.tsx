@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { THEMES } from "@/constants/themes";
 import type { ThemeKey } from "@/constants/themes";
 
@@ -49,22 +48,6 @@ export default function TeamsPage() {
     await load();
   }
 
-  async function setTheme(id: string, theme: ThemeKey) {
-    setError("");
-    const prev = teams;
-    setTeams(teams.map((t) => (t.id === id ? { ...t, theme } : t))); // 낙관적 반영
-    const res = await fetch(`/api/v1/admin/teams/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ theme }),
-    });
-    if (!res.ok) {
-      setTeams(prev); // 실패 시 되돌림
-      const d = await res.json().catch(() => ({}));
-      setError(d.message ?? "테마 변경에 실패했습니다.");
-    }
-  }
-
   async function deleteTeam(id: string) {
     if (!confirm("팀을 삭제하시겠습니까?")) return;
     setError("");
@@ -82,7 +65,7 @@ export default function TeamsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-gray-900 font-noto">팀 관리</h2>
-          <p className="text-sm text-gray-500 mt-0.5 font-pretendard">팀 목록을 관리하고 숲 테마를 지정하세요</p>
+          <p className="text-sm text-gray-500 mt-0.5 font-pretendard">팀을 추가하거나 삭제할 수 있습니다 (숲 테마는 표시 전용)</p>
         </div>
 
         <form onSubmit={addTeam} className="flex gap-2">
@@ -127,21 +110,11 @@ export default function TeamsPage() {
                   <span className="text-[15px] font-semibold text-gray-900 font-noto">{team.name}</span>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {(Object.keys(THEMES) as ThemeKey[]).map((key) => (
-                    <button
-                      key={key}
-                      onClick={() => setTheme(team.id, key)}
-                      className={cn(
-                        "flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] border transition-colors font-pretendard",
-                        team.theme === key
-                          ? "border-[#31C678] bg-[#F6FEF8] text-[#31C678] font-medium"
-                          : "border-gray-200 text-gray-400 hover:bg-gray-50"
-                      )}
-                    >
-                      {THEMES[key].icon} {THEMES[key].label}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-3">
+                  {/* 숲 테마는 표시 전용 (변경 불가) */}
+                  <span className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] border border-gray-100 bg-gray-50 text-gray-500 font-pretendard">
+                    {themeInfo.icon} {themeInfo.label}
+                  </span>
                   <button
                     onClick={() => deleteTeam(team.id)}
                     className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-300 hover:bg-red-50 hover:border-red-200 hover:text-red-400 transition-colors"

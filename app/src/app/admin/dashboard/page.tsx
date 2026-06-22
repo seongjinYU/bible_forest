@@ -61,6 +61,10 @@ export default function DashboardPage() {
     ? Math.round(teams.reduce((s, t) => s + t.progress_rate, 0) / teams.length)
     : 0;
 
+  // 팀 순위: 앱 리더보드와 동일하게 총 나무 점수 내림차순. 막대는 1등 대비 비중.
+  const rankedTeams = [...teams].sort((a, b) => b.total_score - a.total_score);
+  const maxScore = Math.max(1, ...teams.map((t) => t.total_score));
+
   const SUMMARY = [
     { label: "전체 참여 인원", value: `${totalParticipants}명`, icon: Users,      color: "text-blue-500",   bg: "bg-blue-50"   },
     { label: "총 나무 수",     value: `${totalTrees}그루`,       icon: Trees,      color: "text-green-500",  bg: "bg-green-50"  },
@@ -90,21 +94,27 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* 팀별 진도율 */}
+      {/* 팀별 순위 (총 점수) — 앱 리더보드와 동일 기준 */}
       <div className="bg-white rounded-2xl border border-gray-100 px-5 py-5">
-        <h3 className="font-bold text-gray-800 text-[15px] mb-4 font-noto">팀별 진도율</h3>
-        {teams.length === 0 ? (
+        <h3 className="font-bold text-gray-800 text-[15px] mb-4 font-noto">팀별 순위 (총 점수)</h3>
+        {rankedTeams.length === 0 ? (
           <p className="text-sm text-gray-400 font-pretendard">팀 데이터가 없습니다.</p>
         ) : (
           <div className="flex flex-col gap-3">
-            {[...teams].sort((a, b) => b.progress_rate - a.progress_rate).map((t) => (
+            {rankedTeams.map((t, i) => (
               <div key={t.team_id} className="flex items-center gap-3">
+                <span
+                  className="w-5 text-[13px] font-bold shrink-0 text-center font-pretendard"
+                  style={{ color: i < 3 ? "#31C678" : "#D1D5DB" }}
+                >
+                  {i + 1}
+                </span>
                 <span className="w-8 text-[13px] font-medium text-gray-600 shrink-0 font-pretendard">{t.team_name}</span>
                 <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
-                  <div className="h-full rounded-full bg-[#31C678] transition-all" style={{ width: `${t.progress_rate}%` }} />
+                  <div className="h-full rounded-full bg-[#31C678] transition-all" style={{ width: `${Math.round((t.total_score / maxScore) * 100)}%` }} />
                 </div>
-                <div className="flex items-center gap-3 shrink-0 w-40">
-                  <span className="text-[13px] font-semibold text-[#31C678] w-10 text-right font-pretendard">{t.progress_rate}%</span>
+                <div className="flex items-center gap-3 shrink-0 w-44">
+                  <span className="text-[13px] font-semibold text-[#31C678] w-14 text-right font-pretendard">{t.total_score}점</span>
                   <span className="text-[12px] text-gray-400 font-pretendard">🌲 {t.tree_count}그루 · {t.member_count}명</span>
                 </div>
               </div>
