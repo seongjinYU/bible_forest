@@ -71,6 +71,7 @@ export default function ReadingClient({
   const [allProgress, setAllProgress] = useState<Map<string, Set<number>>>(
     () => buildProgressMap(initialProgress),
   );
+  const [anchorChapter, setAnchorChapter] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showEarned, setShowEarned] = useState(false);
@@ -81,11 +82,22 @@ export default function ReadingClient({
 
   function toggleChapter(ch: number) {
     if (alreadyRead.has(ch)) return;
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(ch)) next.delete(ch); else next.add(ch);
-      return next;
-    });
+    if (selected.has(ch)) {
+      setSelected((prev) => { const next = new Set(prev); next.delete(ch); return next; });
+      setAnchorChapter(null);
+    } else if (anchorChapter !== null) {
+      const lo = Math.min(anchorChapter, ch);
+      const hi = Math.max(anchorChapter, ch);
+      setSelected((prev) => {
+        const next = new Set(prev);
+        for (let c = lo; c <= hi; c++) { if (!alreadyRead.has(c)) next.add(c); }
+        return next;
+      });
+      setAnchorChapter(ch);
+    } else {
+      setSelected((prev) => { const next = new Set(prev); next.add(ch); return next; });
+      setAnchorChapter(ch);
+    }
   }
 
   function handleComplete() {
@@ -131,6 +143,7 @@ export default function ReadingClient({
     setSelectedBook(book);
     setDropdownOpen(false);
     setSelected(new Set());
+    setAnchorChapter(null);
   }
 
   return (
@@ -155,7 +168,7 @@ export default function ReadingClient({
           const allSelected = unread.length > 0 && unread.every((ch) => selected.has(ch));
           return (
             <button
-              onClick={() => setSelected(allSelected ? new Set() : new Set(unread))}
+              onClick={() => { setSelected(allSelected ? new Set() : new Set(unread)); setAnchorChapter(null); }}
               className="text-[14px] font-pretendard text-[#0FC8B8]"
             >
               {allSelected ? "전체 해제" : "전체 선택"}
