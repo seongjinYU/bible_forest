@@ -90,8 +90,8 @@ export default function ReadingClient({
   const [anchorChapter, setAnchorChapter] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [showEarned, setShowEarned] = useState(false);
-  const [earnedSpecies, setEarnedSpecies] = useState<string | null>(null);
+  const [earnedItems, setEarnedItems] = useState<string[]>([]);
+  const [earnedIndex, setEarnedIndex] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
 
   // 현재 보고 있는 권의 draft
@@ -169,8 +169,8 @@ export default function ReadingClient({
       return next;
     });
     if (data.newly_earned?.length > 0) {
-      setEarnedSpecies(data.newly_earned[0].species);
-      setShowEarned(true);
+      setEarnedItems(data.newly_earned.map((i: { species: string }) => i.species));
+      setEarnedIndex(0);
     } else {
       router.push("/");
     }
@@ -360,28 +360,48 @@ export default function ReadingClient({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showEarned} onOpenChange={setShowEarned}>
+      <Dialog
+        open={earnedItems.length > 0}
+        onOpenChange={(open) => {
+          if (!open) { setEarnedItems([]); router.push("/"); }
+        }}
+      >
         <DialogContent showCloseButton={false} className="p-0 gap-0 rounded-[12px]">
-          <div className="flex items-center justify-end px-4 pt-4">
-            <button onClick={() => { setShowEarned(false); router.push("/"); }} className="w-10 h-10 flex items-center justify-center">
-              <X size={20} className="text-[#222222]" />
-            </button>
-          </div>
-          <div className="px-5 pb-6 flex flex-col items-center gap-5">
-            <div className="flex flex-col items-center gap-1">
-              <DialogTitle className="text-[20px] font-bold text-[#222222] text-center font-noto leading-snug">
-                와! 새로운 아이템을 획득했어요!
-              </DialogTitle>
-              <p className="text-[14px] text-[#888888] text-center font-noto">
-                [내 보관함]에서 확인하고 아이템을 심어보세요!
-              </p>
-            </div>
-            {(() => {
-              const speciesNum = Number(earnedSpecies);
-              const isNumbered = !isNaN(speciesNum) && speciesNum > 0;
-              const name = isNumbered ? (ELEMENT_NAMES[theme]?.[speciesNum] ?? "") : "";
-              return (
-                <>
+          {(() => {
+            const currentSpecies = earnedItems[earnedIndex] ?? null;
+            const speciesNum = Number(currentSpecies);
+            const isNumbered = !isNaN(speciesNum) && speciesNum > 0;
+            const name = isNumbered ? (ELEMENT_NAMES[theme]?.[speciesNum] ?? "") : "";
+            const total = earnedItems.length;
+            const isLast = earnedIndex === total - 1;
+
+            function closeEarned() { setEarnedItems([]); router.push("/"); }
+            function nextEarned() {
+              if (!isLast) setEarnedIndex((i) => i + 1);
+              else closeEarned();
+            }
+
+            return (
+              <>
+                <div className="flex items-center justify-end px-4 pt-4">
+                  <button onClick={closeEarned} className="w-10 h-10 flex items-center justify-center">
+                    <X size={20} className="text-[#222222]" />
+                  </button>
+                </div>
+                <div className="px-5 pb-6 flex flex-col items-center gap-5">
+                  <div className="flex flex-col items-center gap-1">
+                    <DialogTitle className="text-[20px] font-bold text-[#222222] text-center font-noto leading-snug">
+                      와! 새로운 아이템을 획득했어요!
+                    </DialogTitle>
+                    {total > 1 && (
+                      <p className="text-[13px] text-[#0FC8B8] font-pretendard font-medium">
+                        {earnedIndex + 1} / {total}
+                      </p>
+                    )}
+                    <p className="text-[14px] text-[#888888] text-center font-noto">
+                      [내 보관함]에서 확인하고 아이템을 심어보세요!
+                    </p>
+                  </div>
                   <div className="w-[120px] h-[120px] rounded-full bg-[#F5F5F5] flex items-center justify-center">
                     {isNumbered ? (
                       <img
@@ -396,13 +416,13 @@ export default function ReadingClient({
                   {name && (
                     <p className="text-[15px] font-pretendard text-[#222222] -mt-2">{name}</p>
                   )}
-                </>
-              );
-            })()}
-            <button onClick={() => { setShowEarned(false); router.push("/"); }} className="w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto">
-              확인
-            </button>
-          </div>
+                  <button onClick={nextEarned} className="w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto">
+                    {isLast ? "확인" : "다음"}
+                  </button>
+                </div>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
