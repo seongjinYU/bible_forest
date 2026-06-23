@@ -87,7 +87,7 @@ export default function RegisterPage() {
             </h1>
           </div>
           <button
-            onClick={() => router.push("/", { transitionTypes: ["nav-forward"] })}
+            onClick={() => { window.location.href = "/"; }}
             className="w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[20px] font-medium font-noto"
           >
             확인
@@ -112,7 +112,7 @@ export default function RegisterPage() {
             </p>
           </div>
           <button
-            onClick={() => router.push("/", { transitionTypes: ["nav-forward"] })}
+            onClick={() => { window.location.href = "/"; }}
             className="w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[20px] font-medium font-noto"
           >
             확인

@@ -287,7 +287,7 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
                   height: 20,
                   padding: "0 5px",
                   borderRadius: 9999,
-                  backgroundColor: "#F32F15",
+                  backgroundColor: currentTheme.color,
                   color: "#fff",
                   fontSize: 12,
                   fontWeight: 700,
