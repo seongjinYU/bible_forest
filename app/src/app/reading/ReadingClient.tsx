@@ -169,6 +169,7 @@ export default function ReadingClient({
     if (!dragState) return;
     const ch = getChapterAtPoint(e.clientX, e.clientY);
     if (ch === null || ch === dragState.currentCh) return;
+    navigator.vibrate?.(5);
     setDragState((prev) => prev ? { ...prev, currentCh: ch } : null);
   }
 

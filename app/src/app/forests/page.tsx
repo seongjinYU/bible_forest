@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import ForestsCardGrid from "./ForestsCardGrid";
 import ActivityTicker, { type Activity } from "./ActivityTicker";
+import ForestsPullToRefresh from "./ForestsPullToRefresh";
 
 type TeamColor = { primary: string; illus: string; border: string };
 
@@ -109,11 +110,7 @@ export default async function ForestsPage() {
   return (
     <div className="relative flex flex-col h-dvh bg-white">
       {/* 스크롤 영역 — 헤더 + 카드 모두 포함 */}
-      <div
-        className="flex-1 overflow-y-auto px-4 pb-20"
-        style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}
-      >
-
+      <ForestsPullToRefresh>
         {/* 최근 활동 배너 */}
         {shuffledActivities.length > 0 && (
           <ActivityTicker initial={shuffledActivities} />
@@ -141,7 +138,7 @@ export default async function ForestsPage() {
 
         {/* 스태거 카드 그리드 */}
         <ForestsCardGrid teams={sortedTeams} myTeamId={user.team_id} />
-      </div>{/* /스크롤 영역 */}
+      </ForestsPullToRefresh>
 
       {/* Floating 버튼 — absolute, 배경 컨테이너 없음 */}
       <Link
