@@ -139,7 +139,7 @@ export default function PlaceTreeContent({ plantedTrees, previewName, previewTea
 
           {/* 메인 화면 UI 레이아웃 고스트 */}
           <div
-            className="absolute inset-0 flex flex-col min-h-dvh pointer-events-none"
+            className="absolute inset-0 flex flex-col min-h-svh pointer-events-none"
             style={{ paddingTop: "env(safe-area-inset-top)" }}
           >
             <div className="h-[44px] flex items-end pb-1 justify-end px-4">
@@ -223,7 +223,7 @@ export default function PlaceTreeContent({ plantedTrees, previewName, previewTea
       )}
 
       {/* 배치 UI */}
-      <div className="h-dvh relative overflow-hidden">
+      <div className="h-svh relative overflow-hidden">
         {/* 배경 — 메인 화면과 동일하게 full screen으로 렌더링 */}
         <img
           src={`/assets/${theme}/bg.png`}

@@ -185,7 +185,7 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
 
 
   return (
-    <div ref={screenRef} className="relative min-h-dvh overflow-hidden">
+    <div ref={screenRef} className="relative min-h-svh overflow-hidden">
       {/* 전체화면 배경 */}
       <div className="absolute inset-0">
         <img src={`/assets/${theme}/bg.png`} alt="" className="w-full h-full object-cover" />
@@ -232,7 +232,7 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
       </div>
 
       {/* 콘텐츠 레이어 */}
-      <div className="relative z-10 flex flex-col min-h-dvh" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+      <div className="relative z-10 flex flex-col min-h-svh" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         {/* AppBar */}
         <div className="h-[44px] flex items-end pb-1 justify-between px-4">
           <div className="w-10 h-10" />
