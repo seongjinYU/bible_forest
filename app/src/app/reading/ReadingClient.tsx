@@ -125,6 +125,12 @@ export default function ReadingClient({
     );
   const dirty = changedBooks.length > 0;
 
+  // 저장 후 총 장수 / 다음 아이템까지 계산
+  const draftTotal = Array.from(draftByBook.values()).reduce((sum, s) => sum + s.size, 0);
+  const currentTotal = Array.from(allProgress.values()).reduce((sum, s) => sum + s.size, 0);
+  const willEarnTrees = Math.floor(draftTotal / 10) - Math.floor(currentTotal / 10);
+  const chaptersUntilNext = draftTotal % 10 === 0 ? 10 : 10 - (draftTotal % 10);
+
   function toggleChapter(ch: number) {
     setDraftByBook((prev) => {
       const next = new Map(prev);
@@ -293,6 +299,18 @@ export default function ReadingClient({
         )}
       </div>
 
+      {/* 선택 장 수 배지 */}
+      <div className="h-7 flex items-center justify-center shrink-0">
+        {effectiveDraft.size > 0 && (
+          <span
+            className="px-3 py-0.5 rounded-full text-[12px] font-semibold font-pretendard text-white"
+            style={{ background: GRADIENT }}
+          >
+            {effectiveDraft.size}장 선택됨
+          </span>
+        )}
+      </div>
+
       <div className="flex-1 overflow-y-auto px-5">
         {(() => {
           const groups = buildPillGroups(effectiveDraft);
@@ -409,7 +427,7 @@ export default function ReadingClient({
                 {"인증할 성경을 정확히 선택하셨는지\n다시 한번 확인해 주세요."}
               </p>
             </div>
-            <div className="border border-[#EEEEEE] rounded-[8px] px-4 py-4 flex flex-col gap-2 max-h-[220px] overflow-y-auto">
+            <div className="border border-[#EEEEEE] rounded-[8px] px-4 py-4 flex flex-col gap-2 max-h-[180px] overflow-y-auto">
               {changedBooks.map((name) => (
                 <div key={name} className="flex gap-4 text-[15px] font-pretendard">
                   <span className="text-[#AAAAAA] shrink-0 min-w-[64px]">{name}</span>
@@ -419,6 +437,28 @@ export default function ReadingClient({
                 </div>
               ))}
             </div>
+
+            {/* 총 장수 + 다음 아이템까지 */}
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[13px] text-[#AAAAAA] font-pretendard">
+                총 <span className="text-[#222222] font-semibold">{draftTotal}장</span> 읽음
+              </span>
+              {willEarnTrees > 0 ? (
+                <span className="text-[13px] font-semibold font-pretendard text-[#31C678]">
+                  아이템 +{willEarnTrees}개 획득!
+                </span>
+              ) : willEarnTrees < 0 ? (
+                <span className="text-[13px] font-pretendard text-[#F32F15]">
+                  아이템 {-willEarnTrees}개 반납됨
+                </span>
+              ) : (
+                <span className="text-[13px] text-[#AAAAAA] font-pretendard">
+                  다음 아이템까지{" "}
+                  <span className="text-[#222222] font-semibold">{chaptersUntilNext}장</span>
+                </span>
+              )}
+            </div>
+
             <button onClick={handleConfirm} className="w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto">
               확인
             </button>

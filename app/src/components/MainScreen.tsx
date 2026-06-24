@@ -24,6 +24,7 @@ interface MainScreenProps {
   stats: Stats;
   plantedTrees: PlantedTree[];
   storageCount: number;
+  totalChapters: number;
 }
 
 const INFO_ITEMS = [
@@ -43,7 +44,7 @@ const INFO_ITEMS = [
 
 type ToastState = { message: string; action?: { label: string; onClick: () => void } } | null;
 
-export default function MainScreen({ name, team, stats, plantedTrees, storageCount }: MainScreenProps) {
+export default function MainScreen({ name, team, stats, plantedTrees, storageCount, totalChapters }: MainScreenProps) {
   const router = useRouter();
   const theme = useTheme();
   const [helpOpen, setHelpOpen] = useState(false);
@@ -185,7 +186,7 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
 
 
   return (
-    <div ref={screenRef} className="relative min-h-svh overflow-hidden">
+    <div ref={screenRef} className="relative h-svh overflow-hidden">
       {/* 전체화면 배경 */}
       <div className="absolute inset-0">
         <img src={`/assets/${theme}/bg.png`} alt="" className="w-full h-full object-cover" />
@@ -232,7 +233,7 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
       </div>
 
       {/* 콘텐츠 레이어 */}
-      <div className="relative z-10 flex flex-col min-h-svh" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+      <div className="relative z-10 flex flex-col h-svh" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         {/* AppBar */}
         <div className="h-[44px] flex items-end pb-1 justify-between px-4">
           <div className="w-10 h-10" />
@@ -312,7 +313,7 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
             <p className={`text-[15px] font-pretendard mb-0.5 ${isDarkBg ? "text-white/80" : "text-[#555555]"}`}>
               {currentTheme.statPhrase}
             </p>
-            <div className="flex items-center gap-[3px] mb-1">
+            <div className="flex items-center gap-[3px] mb-2">
               <span className={`text-[24px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
                 {stats.trees}
               </span>
@@ -323,6 +324,31 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
               </span>
               <span className={`text-[24px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>점</span>
             </div>
+
+            {/* 다음 아이템까지 진행률 바 */}
+            {(() => {
+              const nextMilestone = (Math.floor(totalChapters / 10) + 1) * 10;
+              const progressPct = (totalChapters % 10) / 10 * 100;
+              return (
+                <div className="flex flex-col gap-1 mb-3">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[13px] font-pretendard ${isDarkBg ? "text-white/70" : "text-[#888888]"}`}>
+                      다음 아이템까지
+                    </span>
+                    <span className={`text-[13px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
+                      {totalChapters}/{nextMilestone}장
+                    </span>
+                  </div>
+                  <div className={`h-1.5 rounded-full ${isDarkBg ? "bg-white/20" : "bg-black/10"}`}>
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${progressPct}%`, backgroundColor: currentTheme.color }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1">
                 <span className={`text-[18px] font-pretendard ${isDarkBg ? "text-white/80" : "text-[#555555]"}`}>참여중</span>

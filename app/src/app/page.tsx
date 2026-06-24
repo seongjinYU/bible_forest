@@ -12,7 +12,7 @@ export default async function Home() {
 
   const supabase = createSupabaseServerClient();
 
-  const [teamRes, usersRes, plantedRes, storageRes] = await Promise.all([
+  const [teamRes, usersRes, plantedRes, storageRes, myProgressRes] = await Promise.all([
     supabase.from("teams").select("name").eq("id", user.team_id).single(),
     supabase.from("users").select("bible_progress(count)").eq("team_id", user.team_id),
     supabase
@@ -26,10 +26,16 @@ export default async function Home() {
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id)
       .eq("is_planted", false),
+    // 내가 읽은 총 장수
+    supabase
+      .from("bible_progress")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id),
   ]);
 
   const teamData = teamRes.data as { name: string } | null;
   const storageCount = storageRes.count ?? 0;
+  const totalChapters = myProgressRes.count ?? 0;
 
   type UserRow = { bible_progress: { count: number }[] };
   const usersData = (usersRes.data ?? []) as UserRow[];
@@ -48,6 +54,7 @@ export default async function Home() {
       stats={stats}
       plantedTrees={plantedTrees}
       storageCount={storageCount}
+      totalChapters={totalChapters}
     />
   );
 }
