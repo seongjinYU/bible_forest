@@ -49,14 +49,27 @@ export default async function StoragePage() {
       {trees.length === 0 ? (
         <>
           <div className="flex-1 flex flex-col items-center justify-center px-8">
+            <div className="w-[72px] h-[72px] rounded-full bg-[#F3F3F3] flex items-center justify-center mb-4">
+              <span className="text-[36px]">🌱</span>
+            </div>
             <p className="text-[17px] font-semibold font-pretendard text-[#222222]">
-              보관함이 비어있어요
+              아직 획득한 아이템이 없어요
             </p>
-            <p className="text-[14px] font-pretendard text-[#999999] text-center leading-relaxed mt-1.5">
-              성경을 읽고 인증해보세요!
+            <p className="text-[14px] font-pretendard text-[#999999] text-center leading-relaxed mt-2 whitespace-pre-line">
+              {"성경을 읽고 인증하면\n나무를 획득할 수 있어요!"}
+            </p>
+            <p className="text-[13px] font-pretendard text-[#BBBBBB] text-center mt-1.5">
+              10장 읽을 때마다 아이템 1개 획득
             </p>
           </div>
-          <div className="px-5 pb-safe pt-3 shrink-0">
+          <div className="px-5 pb-safe pt-3 shrink-0 flex flex-col gap-2">
+            <Link
+              href="/reading"
+              transitionTypes={["nav-forward"]}
+              className="press-fx w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[17px] font-medium font-noto flex items-center justify-center"
+            >
+              인증하기
+            </Link>
             <Link
               href="/"
               transitionTypes={["nav-back"]}

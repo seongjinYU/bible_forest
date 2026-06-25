@@ -18,6 +18,12 @@ interface PlantedTree {
   y: number;
 }
 
+interface Participant {
+  nickname: string;
+  score: number;
+  joinedAt: string;
+}
+
 interface MainScreenProps {
   name: string;
   team: string;
@@ -25,7 +31,18 @@ interface MainScreenProps {
   plantedTrees: PlantedTree[];
   storageCount: number;
   totalChapters: number;
+  participants: Participant[];
 }
+
+const AVATAR_PALETTE = [
+  { bg: "#B8E4DA", fg: "#0F6B55" },
+  { bg: "#F5C5A8", fg: "#B5451A" },
+  { bg: "#F5DDB8", fg: "#8B5A10" },
+  { bg: "#D4B8F5", fg: "#5A1A9B" },
+  { bg: "#B8D9F5", fg: "#1A3A8B" },
+  { bg: "#F5B8D4", fg: "#9B1A5A" },
+];
+const MAX_AVATARS = 4;
 
 const INFO_ITEMS = [
   {
@@ -44,14 +61,18 @@ const INFO_ITEMS = [
 
 type ToastState = { message: string; action?: { label: string; onClick: () => void } } | null;
 
-export default function MainScreen({ name, team, stats, plantedTrees, storageCount, totalChapters }: MainScreenProps) {
+export default function MainScreen({ name, team, stats, plantedTrees, storageCount, totalChapters, participants }: MainScreenProps) {
   const router = useRouter();
   const theme = useTheme();
   const [helpOpen, setHelpOpen] = useState(false);
+  const [showParticipants, setShowParticipants] = useState(false);
+  const [sheetDragY, setSheetDragY] = useState(0);
   const [toast, setToast] = useState<ToastState>(null);
   const screenRef = useRef<HTMLDivElement>(null);
   const downloadOverlayRef = useRef<HTMLDivElement>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sheetDragStartY = useRef<number | null>(null);
+  const sheetScrollRef = useRef<HTMLDivElement>(null);
 
   const currentTheme = THEMES[theme];
   const isStarTheme = theme === "night";
@@ -183,6 +204,9 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
   const textPrimary = isDarkBg ? "text-white" : "text-[#222222]";
   const textSecondary = isDarkBg ? "text-white/70" : "text-[#999999]";
   const textMuted = isDarkBg ? "text-white/80" : "text-[#555555]";
+  const glassCard = isDarkBg
+    ? "bg-white/10 backdrop-blur-md"
+    : "bg-white/60 backdrop-blur-md";
 
 
   return (
@@ -256,114 +280,156 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
         </div>
 
         {/* 유저 정보 */}
-        <div className="px-6 pt-0 pb-2 flex items-start justify-between">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-baseline gap-1.5">
-              <span className={`text-[24px] font-bold leading-none font-pretendard ${textPrimary}`}>
-                {name}
-              </span>
-              <span className={`text-[16px] font-pretendard ${textSecondary}`}>
-                {team}
-              </span>
+        <div className="mx-4 mt-1 px-4 py-3 flex flex-col gap-3">
+          <div className="flex items-start justify-between">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-baseline gap-1.5">
+                <span className={`text-[24px] font-bold leading-none font-pretendard ${textPrimary}`}>
+                  {name}
+                </span>
+                <span className={`text-[16px] font-pretendard ${textSecondary}`}>
+                  {team}
+                </span>
+              </div>
+              <p className={`text-[16px] font-pretendard ${textMuted}`}>
+                {currentTheme.tagline}
+              </p>
             </div>
-            <p className={`text-[16px] font-pretendard ${textMuted}`}>
-              {currentTheme.tagline}
-            </p>
+            <button
+              onClick={() => router.push("/storage", { transitionTypes: ["nav-forward"] })}
+              style={{ position: "relative" }}
+              className={`mt-2 shrink-0 h-[34px] px-[14px] rounded-[20px] border text-[14px] font-pretendard ${
+                isDarkBg ? "border-white text-white" : "border-[#222222] text-[#222222]"
+              }`}
+            >
+              내 보관함
+              {storageCount > 0 && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: -7,
+                    right: -7,
+                    minWidth: 20,
+                    height: 20,
+                    padding: "0 5px",
+                    borderRadius: 9999,
+                    backgroundColor: currentTheme.color,
+                    color: "#fff",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    lineHeight: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                  }}
+                  aria-label={`보관중 ${storageCount}개`}
+                >
+                  {storageCount > 99 ? "99+" : storageCount}
+                </span>
+              )}
+            </button>
           </div>
-          <button
-            onClick={() => router.push("/storage", { transitionTypes: ["nav-forward"] })}
-            style={{ position: "relative" }}
-            className={`mt-2 shrink-0 h-[34px] px-[14px] rounded-[20px] border text-[14px] font-pretendard ${
-              isDarkBg ? "border-white text-white" : "border-[#222222] text-[#222222]"
-            }`}
-          >
-            내 보관함
-            {storageCount > 0 && (
-              <span
-                style={{
-                  position: "absolute",
-                  top: -7,
-                  right: -7,
-                  minWidth: 20,
-                  height: 20,
-                  padding: "0 5px",
-                  borderRadius: 9999,
-                  backgroundColor: currentTheme.color,
-                  color: "#fff",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  lineHeight: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                }}
-                aria-label={`보관중 ${storageCount}개`}
-              >
-                {storageCount > 99 ? "99+" : storageCount}
-              </span>
-            )}
-          </button>
+
+          {/* 다음 획득까지 진행률 바 */}
+          {(() => {
+            const nextMilestone = (Math.floor(totalChapters / 10) + 1) * 10;
+            const progressPct = (totalChapters % 10) / 10 * 100;
+            return (
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <span className={`text-[13px] font-pretendard ${isDarkBg ? "text-white/70" : "text-[#888888]"}`}>
+                    다음 획득까지
+                  </span>
+                  <span className={`text-[13px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
+                    {totalChapters}/{nextMilestone}장
+                  </span>
+                </div>
+                <div className={`h-1.5 rounded-full ${isDarkBg ? "bg-white/20" : "bg-black/10"}`}>
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${progressPct}%`, backgroundColor: currentTheme.color }}
+                  />
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* 숲 인터랙션 영역 */}
         <div className="flex-1 relative">
-          {/* 통계 오버레이 */}
-          <div className="absolute bottom-0 left-0 right-0 px-6 pb-5">
-            <p className={`text-[15px] font-pretendard mb-0.5 ${isDarkBg ? "text-white/80" : "text-[#555555]"}`}>
-              {currentTheme.statPhrase}
-            </p>
-            <div className="flex items-center gap-[3px] mb-2">
-              <span className={`text-[24px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
-                {stats.trees}
-              </span>
-              <span className={`text-[24px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>{currentTheme.unit}</span>
-              <div className={`w-1 h-1 rounded-full mx-[5px] ${isDarkBg ? "bg-white/60" : "bg-[#2E9200]"}`} />
-              <span className={`text-[24px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
-                {stats.score}
-              </span>
-              <span className={`text-[24px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>점</span>
+          {/* 빈 숲 온보딩 힌트 */}
+          {plantedTrees.length === 0 && (
+            <div className="absolute top-1/3 left-0 right-0 flex flex-col items-center px-8 -translate-y-1/2 pointer-events-none">
+              <div className={`px-5 py-4 rounded-[16px] flex flex-col items-center gap-1.5 text-center ${isDarkBg ? "bg-white/15 backdrop-blur-sm" : "bg-black/[0.06] backdrop-blur-sm"}`}>
+                <p className={`text-[15px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#333333]"}`}>
+                  {storageCount > 0 ? "첫 번째 나무를 심어보세요!" : "성경을 읽으면 나무를 얻을 수 있어요!"}
+                </p>
+                <p className={`text-[13px] font-pretendard ${isDarkBg ? "text-white/70" : "text-[#777777]"}`}>
+                  {storageCount > 0 ? "보관함에서 나무를 배치해 숲을 채워보세요" : "10장 읽을 때마다 아이템을 획득해요"}
+                </p>
+              </div>
             </div>
+          )}
 
-            {/* 다음 아이템까지 진행률 바 */}
-            {(() => {
-              const nextMilestone = (Math.floor(totalChapters / 10) + 1) * 10;
-              const progressPct = (totalChapters % 10) / 10 * 100;
-              return (
-                <div className="flex flex-col gap-1 mb-3">
-                  <div className="flex items-center justify-between">
-                    <span className={`text-[13px] font-pretendard ${isDarkBg ? "text-white/70" : "text-[#888888]"}`}>
-                      다음 아이템까지
+          {/* 통계 오버레이 */}
+          <div className="absolute bottom-0 left-0 right-0 px-4 pb-3">
+            <div className={`rounded-[20px] px-5 py-4 ${glassCard}`}>
+              <p className={`text-[15px] font-pretendard mb-0.5 ${isDarkBg ? "text-white/80" : "text-[#555555]"}`}>
+                {currentTheme.statPhrase}
+              </p>
+              <div className="flex items-center gap-[3px] mb-2">
+                <span className={`text-[24px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
+                  {stats.trees}
+                </span>
+                <span className={`text-[24px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>{currentTheme.unit}</span>
+                <div className={`w-1 h-1 rounded-full mx-[5px] ${isDarkBg ? "bg-white/60" : "bg-[#2E9200]"}`} />
+                <span className={`text-[24px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
+                  {stats.score}
+                </span>
+                <span className={`text-[24px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>점</span>
+              </div>
+
+              <div className="flex items-end justify-between">
+                <div className="flex flex-col gap-1">
+                  <span className={`text-[15px] font-pretendard ${isDarkBg ? "text-white/80" : "text-[#555555]"}`}>참여중</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[18px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
+                      {stats.participants}명
                     </span>
-                    <span className={`text-[13px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
-                      {totalChapters}/{nextMilestone}장
-                    </span>
-                  </div>
-                  <div className={`h-1.5 rounded-full ${isDarkBg ? "bg-white/20" : "bg-black/10"}`}>
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${progressPct}%`, backgroundColor: currentTheme.color }}
-                    />
+                    <div className="flex items-center">
+                      {participants.slice(0, MAX_AVATARS).map((p, i) => {
+                        const { bg, fg } = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
+                        return (
+                          <div
+                            key={i}
+                            className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[12px] font-semibold font-pretendard border-[2px] border-white"
+                            style={{ backgroundColor: bg, color: fg, marginLeft: i > 0 ? -8 : 0, zIndex: MAX_AVATARS - i }}
+                          >
+                            {p.nickname[0]}
+                          </div>
+                        );
+                      })}
+                      {participants.length > MAX_AVATARS && (
+                        <button
+                          onClick={() => setShowParticipants(true)}
+                          className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[11px] font-semibold font-pretendard border-[2px] border-white text-white"
+                          style={{ backgroundColor: "#333", marginLeft: -8, zIndex: 0 }}
+                        >
+                          +
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              );
-            })()}
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1">
-                <span className={`text-[18px] font-pretendard ${isDarkBg ? "text-white/80" : "text-[#555555]"}`}>참여중</span>
-                <span className={`text-[18px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
-                  {stats.participants}
-                </span>
-                <span className={`text-[18px] font-pretendard ${isDarkBg ? "text-white/80" : "text-[#555555]"}`}>명</span>
+                <button
+                  onClick={() => router.push("/reading", { transitionTypes: ["nav-forward"] })}
+                  className="h-[40px] px-5 rounded-full text-white text-[15px] font-semibold font-pretendard"
+                  style={{ backgroundColor: currentTheme.color }}
+                >
+                  인증하기
+                </button>
               </div>
-              <button
-                onClick={() => router.push("/reading", { transitionTypes: ["nav-forward"] })}
-                className="h-[40px] px-5 rounded-full text-white text-[15px] font-semibold font-pretendard"
-                style={{ backgroundColor: currentTheme.color }}
-              >
-                인증하기
-              </button>
             </div>
           </div>
         </div>
@@ -422,6 +488,73 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
             >
               확인
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 참여 현황 팝업 */}
+      {showParticipants && (
+        <div
+          className="fixed inset-0 z-50 flex items-end bg-black/40"
+          onClick={() => { setShowParticipants(false); setSheetDragY(0); }}
+        >
+          <div
+            className="w-full bg-white rounded-t-[20px] max-h-[70vh] flex flex-col"
+            style={{ transform: `translateY(${Math.max(0, sheetDragY)}px)`, transition: sheetDragStartY.current !== null ? "none" : "transform 0.25s ease" }}
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={(e) => {
+              const atTop = (sheetScrollRef.current?.scrollTop ?? 0) === 0;
+              sheetDragStartY.current = atTop ? e.touches[0].clientY : null;
+            }}
+            onTouchMove={(e) => {
+              if (sheetDragStartY.current === null) return;
+              const dy = e.touches[0].clientY - sheetDragStartY.current;
+              if (dy <= 0) return;
+              e.preventDefault();
+              setSheetDragY(dy);
+            }}
+            onTouchEnd={() => {
+              if (sheetDragY > 80) {
+                setShowParticipants(false);
+                setSheetDragY(0);
+              } else {
+                setSheetDragY(0);
+              }
+              sheetDragStartY.current = null;
+            }}
+          >
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
+              <div className="w-10 h-1 rounded-full bg-[#E0E0E0]" />
+            </div>
+            <div className="px-5 py-3 flex items-center justify-between shrink-0">
+              <h2 className="text-[17px] font-semibold font-pretendard text-[#222222]">팀 참여 현황</h2>
+              <span className="text-[14px] font-pretendard text-[#AAAAAA]">{participants.length}명</span>
+            </div>
+            <div ref={sheetScrollRef} className="overflow-y-auto pb-safe">
+              {participants.map((p, i) => {
+                const { bg, fg } = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
+                const d = new Date(p.joinedAt);
+                const dateLabel = `${String(d.getFullYear()).slice(-2)}.${d.getMonth() + 1}.${d.getDate()}`;
+                return (
+                  <div key={i} className="flex items-center gap-4 px-5 py-3.5 border-b border-[#F0F0F0] last:border-0">
+                    <div
+                      className="w-[44px] h-[44px] rounded-full flex items-center justify-center text-[17px] font-semibold font-pretendard shrink-0"
+                      style={{ backgroundColor: bg, color: fg }}
+                    >
+                      {p.nickname[0]}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[16px] font-semibold font-pretendard text-[#222222] truncate">
+                        {p.nickname} · {p.score}점
+                      </p>
+                      <p className="text-[13px] font-pretendard text-[#AAAAAA] mt-0.5">
+                        {dateLabel}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
