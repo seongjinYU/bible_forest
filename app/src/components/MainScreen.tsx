@@ -73,11 +73,26 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sheetDragStartY = useRef<number | null>(null);
   const sheetScrollRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   const currentTheme = THEMES[theme];
   const isStarTheme = theme === "night";
 
   useEffect(() => () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); }, []);
+
+  useEffect(() => {
+    const el = sheetRef.current;
+    if (!el || !showParticipants) return;
+    const onTouchMove = (e: TouchEvent) => {
+      if (sheetDragStartY.current === null) return;
+      const dy = e.touches[0].clientY - sheetDragStartY.current;
+      if (dy <= 0) return;
+      e.preventDefault();
+      setSheetDragY(dy);
+    };
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => el.removeEventListener("touchmove", onTouchMove);
+  }, [showParticipants]);
 
   function showToast(message: string, action?: { label: string; onClick: () => void }) {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -391,12 +406,12 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
               </div>
 
               <div className="flex items-end justify-between">
-                <div className="flex flex-col gap-1">
+                <button
+                  onClick={() => setShowParticipants(true)}
+                  className="flex flex-col gap-1 text-left"
+                >
                   <span className={`text-[15px] font-pretendard ${isDarkBg ? "text-white/80" : "text-[#555555]"}`}>참여중</span>
                   <div className="flex items-center gap-2">
-                    <span className={`text-[18px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
-                      {stats.participants}명
-                    </span>
                     <div className="flex items-center">
                       {participants.slice(0, MAX_AVATARS).map((p, i) => {
                         const { bg, fg } = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
@@ -410,18 +425,13 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
                           </div>
                         );
                       })}
-                      {participants.length > MAX_AVATARS && (
-                        <button
-                          onClick={() => setShowParticipants(true)}
-                          className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[11px] font-semibold font-pretendard border-[2px] border-white text-white"
-                          style={{ backgroundColor: "#333", marginLeft: -8, zIndex: 0 }}
-                        >
-                          +
-                        </button>
-                      )}
                     </div>
+                    <span className={`text-[18px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
+                      {stats.participants}명
+                    </span>
+                    <span className={`text-[22px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>›</span>
                   </div>
-                </div>
+                </button>
                 <button
                   onClick={() => router.push("/reading", { transitionTypes: ["nav-forward"] })}
                   className="h-[40px] px-5 rounded-full text-white text-[15px] font-semibold font-pretendard"
@@ -499,19 +509,13 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
           onClick={() => { setShowParticipants(false); setSheetDragY(0); }}
         >
           <div
+            ref={sheetRef}
             className="w-full bg-white rounded-t-[20px] max-h-[70vh] flex flex-col"
             style={{ transform: `translateY(${Math.max(0, sheetDragY)}px)`, transition: sheetDragStartY.current !== null ? "none" : "transform 0.25s ease" }}
             onClick={(e) => e.stopPropagation()}
             onTouchStart={(e) => {
               const atTop = (sheetScrollRef.current?.scrollTop ?? 0) === 0;
               sheetDragStartY.current = atTop ? e.touches[0].clientY : null;
-            }}
-            onTouchMove={(e) => {
-              if (sheetDragStartY.current === null) return;
-              const dy = e.touches[0].clientY - sheetDragStartY.current;
-              if (dy <= 0) return;
-              e.preventDefault();
-              setSheetDragY(dy);
             }}
             onTouchEnd={() => {
               if (sheetDragY > 80) {
