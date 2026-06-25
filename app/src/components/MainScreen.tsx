@@ -61,7 +61,7 @@ const INFO_ITEMS = [
 
 type ToastState = { message: string; action?: { label: string; onClick: () => void } } | null;
 
-export default function MainScreen({ name, team, stats, plantedTrees, storageCount, totalChapters, participants }: MainScreenProps) {
+export default function MainScreen({ name, team, stats, plantedTrees, storageCount, totalChapters, participants = [] }: MainScreenProps) {
   const router = useRouter();
   const theme = useTheme();
   const [helpOpen, setHelpOpen] = useState(false);
@@ -510,7 +510,7 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
         >
           <div
             ref={sheetRef}
-            className="w-full bg-white rounded-t-[20px] max-h-[70vh] flex flex-col"
+            className="w-full bg-white rounded-t-[20px] h-[50vh] flex flex-col"
             style={{ transform: `translateY(${Math.max(0, sheetDragY)}px)`, transition: sheetDragStartY.current !== null ? "none" : "transform 0.25s ease" }}
             onClick={(e) => e.stopPropagation()}
             onTouchStart={(e) => {
