@@ -199,12 +199,10 @@ export default function PlaceTreeContent({ plantedTrees, previewName, previewTea
               </div>
             </div>
             <div className="px-6 pb-safe pt-3">
-              <div className={cn(
-                "w-full h-[48px] rounded-[8px] flex items-center justify-center text-[16px] font-pretendard",
-                isDarkBg
-                  ? "bg-white/15 text-white backdrop-blur-sm"
-                  : "bg-white/80 backdrop-blur-sm border border-white/60 text-[#222222]",
-              )}>
+              <div
+                className="w-full h-[48px] rounded-[8px] flex items-center justify-center text-[16px] font-pretendard text-white"
+                style={{ backgroundColor: THEMES[theme].color }}
+              >
                 {THEMES[theme].forumsLabel}
               </div>
             </div>

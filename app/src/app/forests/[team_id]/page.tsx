@@ -88,11 +88,8 @@ export default async function ForestDetailPage({
           <Link
             href="/forests"
             transitionTypes={["nav-back"]}
-            className={`press-fx w-full h-[48px] rounded-[8px] text-[16px] font-pretendard flex items-center justify-center ${
-              isDarkBg
-                ? "bg-white/15 text-white backdrop-blur-sm"
-                : "bg-white/80 backdrop-blur-sm border border-white/60 text-[#222222]"
-            }`}
+            className="press-fx w-full h-[48px] rounded-[8px] text-[16px] font-pretendard flex items-center justify-center text-white"
+            style={{ backgroundColor: currentTheme.color }}
           >
             {currentTheme.forumsLabel}
           </Link>

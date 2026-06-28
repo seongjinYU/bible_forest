@@ -21,7 +21,7 @@ export const THEMES: Record<ThemeKey, {
     statPhrase: "현재 우리 숲은?",
     unit: "그루",
     tagline: "팀 영혼들과 함께 나무를 심어보세요!",
-    forumsLabel: "다른 숲 구경하러 가기",
+    forumsLabel: "다른 팀 구경하러 가기",
   },
   night: {
     label: "밤하늘",
@@ -32,7 +32,7 @@ export const THEMES: Record<ThemeKey, {
     statPhrase: "현재 우리 밤하늘은?",
     unit: "개",
     tagline: "팀 영혼들과 함께 별을 심어보세요!",
-    forumsLabel: "다른 밤하늘 구경하러 가기",
+    forumsLabel: "다른 팀 구경하러 가기",
   },
   ocean: {
     label: "바다",
@@ -43,7 +43,7 @@ export const THEMES: Record<ThemeKey, {
     statPhrase: "현재 우리 바다는?",
     unit: "마리",
     tagline: "팀 영혼들과 함께 바다를 채워보세요!",
-    forumsLabel: "다른 바다 구경하러 가기",
+    forumsLabel: "다른 팀 구경하러 가기",
   },
 };
 

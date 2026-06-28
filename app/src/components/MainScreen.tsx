@@ -31,6 +31,7 @@ interface MainScreenProps {
   plantedTrees: PlantedTree[];
   storageCount: number;
   totalChapters: number;
+  lastReadAt: string | null;
   participants: Participant[];
 }
 
@@ -61,7 +62,7 @@ const INFO_ITEMS = [
 
 type ToastState = { message: string; action?: { label: string; onClick: () => void } } | null;
 
-export default function MainScreen({ name, team, stats, plantedTrees, storageCount, totalChapters, participants = [] }: MainScreenProps) {
+export default function MainScreen({ name, team, stats, plantedTrees, storageCount, totalChapters, lastReadAt, participants = [] }: MainScreenProps) {
   const router = useRouter();
   const theme = useTheme();
   const [helpOpen, setHelpOpen] = useState(false);
@@ -220,8 +221,8 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
   const textSecondary = isDarkBg ? "text-white/70" : "text-[#999999]";
   const textMuted = isDarkBg ? "text-white/80" : "text-[#555555]";
   const glassCard = isDarkBg
-    ? "bg-white/10 backdrop-blur-md"
-    : "bg-white/60 backdrop-blur-md";
+    ? "bg-white/10 backdrop-blur-md border border-white/10"
+    : "bg-white/20 backdrop-blur-[2px] border border-white/40";
 
 
   return (
@@ -346,30 +347,6 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
             </button>
           </div>
 
-          {/* 다음 획득까지 진행률 바 */}
-          {(() => {
-            const completed = totalChapters >= 260;
-            const nextMilestone = completed ? 260 : (Math.floor(totalChapters / 10) + 1) * 10;
-            const progressPct = completed ? 100 : (totalChapters % 10) / 10 * 100;
-            return (
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between">
-                  <span className={`text-[13px] font-pretendard ${isDarkBg ? "text-white/70" : "text-[#888888]"}`}>
-                    {completed ? "신약일독 완료" : "다음 획득까지"}
-                  </span>
-                  <span className={`text-[13px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
-                    {completed ? "260/260장" : `${totalChapters}/${nextMilestone}장`}
-                  </span>
-                </div>
-                <div className={`h-1.5 rounded-full ${isDarkBg ? "bg-white/20" : "bg-black/10"}`}>
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${progressPct}%`, backgroundColor: currentTheme.color }}
-                  />
-                </div>
-              </div>
-            );
-          })()}
         </div>
 
         {/* 숲 인터랙션 영역 */}
@@ -394,7 +371,7 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
               <p className={`text-[15px] font-pretendard mb-0.5 ${isDarkBg ? "text-white/80" : "text-[#555555]"}`}>
                 {currentTheme.statPhrase}
               </p>
-              <div className="flex items-center gap-[3px] mb-2">
+              <div className="flex items-center gap-[3px] mb-3">
                 <span className={`text-[24px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
                   {stats.trees}
                 </span>
@@ -405,6 +382,39 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
                 </span>
                 <span className={`text-[24px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>점</span>
               </div>
+
+              {/* 진행률 바 */}
+              {(() => {
+                const completed = totalChapters >= 260;
+                const done = totalChapters % 10;
+                const progressPct = completed ? 100 : done / 10 * 100;
+                const diffDays = lastReadAt ? Math.floor((Date.now() - new Date(lastReadAt).getTime()) / 86400000) : null;
+                const nudge = diffDays === null ? null : diffDays === 0 ? "오늘 인증했어요" : diffDays === 1 ? "어제 마지막으로 인증했어요" : `${diffDays}일째 인증을 안 했어요`;
+                const isWarning = diffDays !== null && diffDays >= 2;
+                return (
+                  <div className="flex flex-col gap-1 mb-3">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[13px] font-pretendard ${isDarkBg ? "text-white/70" : "text-[#888888]"}`}>
+                        {completed ? "신약일독 완료" : "다음 아이템 획득까지"}
+                      </span>
+                      <span className={`text-[13px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
+                        {completed ? "260/260장" : `${done}/10장 남았어요!`}
+                      </span>
+                    </div>
+                    <div className={`h-1.5 rounded-full ${isDarkBg ? "bg-white/20" : "bg-black/10"}`}>
+                      <div className="h-full rounded-full" style={{ width: `${progressPct}%`, backgroundColor: currentTheme.color }} />
+                    </div>
+                    {nudge && (
+                      <p
+                        className="text-[12px] font-pretendard text-right"
+                        style={{ color: isWarning ? "#FF6B6B" : diffDays === 0 ? currentTheme.color : isDarkBg ? "rgba(255,255,255,0.5)" : "#AAAAAA" }}
+                      >
+                        {nudge}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div className="flex items-end justify-between">
                 <button
@@ -449,11 +459,8 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
         <div className="px-6 pb-safe pt-3">
           <button
             onClick={() => router.push("/forests", { transitionTypes: ["nav-forward"] })}
-            className={`w-full h-[48px] rounded-[8px] text-[16px] font-pretendard ${
-              isDarkBg
-                ? "bg-white/15 text-white backdrop-blur-sm"
-                : "bg-white/80 backdrop-blur-sm border border-white/60 text-[#222222]"
-            }`}
+            className="w-full h-[48px] rounded-[8px] text-[16px] font-pretendard text-white"
+            style={{ backgroundColor: currentTheme.color }}
           >
             {currentTheme.forumsLabel}
           </button>
