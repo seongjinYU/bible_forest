@@ -196,9 +196,9 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
 
       const file = new File([blob], "bible-forest.png", { type: "image/png" });
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "팀 숲 성경읽기" });
+        await navigator.share({ files: [file] });
       } else if (navigator.share) {
-        await navigator.share({ title: "팀 숲 성경읽기", text: "함께 심고 함께 자라는 팀 숲 성경읽기 챌린지" });
+        await navigator.share({ files: [file] });
       } else {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -348,16 +348,17 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
 
           {/* 다음 획득까지 진행률 바 */}
           {(() => {
-            const nextMilestone = (Math.floor(totalChapters / 10) + 1) * 10;
-            const progressPct = (totalChapters % 10) / 10 * 100;
+            const completed = totalChapters >= 260;
+            const nextMilestone = completed ? 260 : (Math.floor(totalChapters / 10) + 1) * 10;
+            const progressPct = completed ? 100 : (totalChapters % 10) / 10 * 100;
             return (
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <span className={`text-[13px] font-pretendard ${isDarkBg ? "text-white/70" : "text-[#888888]"}`}>
-                    다음 획득까지
+                    {completed ? "신약일독 완료" : "다음 획득까지"}
                   </span>
                   <span className={`text-[13px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
-                    {totalChapters}/{nextMilestone}장
+                    {completed ? "260/260장" : `${totalChapters}/${nextMilestone}장`}
                   </span>
                 </div>
                 <div className={`h-1.5 rounded-full ${isDarkBg ? "bg-white/20" : "bg-black/10"}`}>
