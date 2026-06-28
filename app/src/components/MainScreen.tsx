@@ -79,6 +79,17 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
   const currentTheme = THEMES[theme];
   const isStarTheme = theme === "night";
 
+  const diffDaysForTagline = lastReadAt
+    ? Math.floor((Date.now() - new Date(lastReadAt).getTime()) / 86400000)
+    : null;
+  const hasReadToday = diffDaysForTagline === 0;
+  const completed260 = totalChapters >= 260;
+  const tagline = completed260
+    ? "축하합니다! 신약 일독을 달성했어요!"
+    : hasReadToday
+    ? `벌써 ${totalChapters}장 읽었어요!`
+    : currentTheme.tagline;
+
   useEffect(() => () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); }, []);
 
   useEffect(() => {
@@ -307,8 +318,8 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
                   {team}
                 </span>
               </div>
-              <p className={`text-[16px] font-pretendard ${textMuted}`}>
-                {currentTheme.tagline}
+              <p className={`text-[16px] font-pretendard ${textPrimary}`}>
+                {tagline}
               </p>
             </div>
             <button
@@ -416,32 +427,27 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
                 );
               })()}
 
-              <div className="flex items-end justify-between">
+              <div className="flex items-center justify-between">
                 <button
                   onClick={() => setShowParticipants(true)}
-                  className="flex flex-col gap-1 text-left"
+                  className="flex items-center gap-2 text-left"
                 >
                   <span className={`text-[15px] font-pretendard ${isDarkBg ? "text-white/80" : "text-[#555555]"}`}>참여중</span>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center">
-                      {participants.slice(0, MAX_AVATARS).map((p, i) => {
-                        const { bg, fg } = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
-                        return (
-                          <div
-                            key={i}
-                            className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[12px] font-semibold font-pretendard border-[2px] border-white"
-                            style={{ backgroundColor: bg, color: fg, marginLeft: i > 0 ? -8 : 0, zIndex: MAX_AVATARS - i }}
-                          >
-                            {p.nickname[0]}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <span className={`text-[18px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
-                      {stats.participants}명
-                    </span>
-                    <span className={`text-[22px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>›</span>
+                  <div className="flex items-center">
+                    {participants.slice(0, 3).map((p, i) => {
+                      const { bg, fg } = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
+                      return (
+                        <div
+                          key={i}
+                          className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[12px] font-semibold font-pretendard border-[2px] border-white"
+                          style={{ backgroundColor: bg, color: fg, marginLeft: i > 0 ? -8 : 0, zIndex: 3 - i }}
+                        >
+                          {p.nickname[0]}
+                        </div>
+                      );
+                    })}
                   </div>
+                  <span className={`text-[22px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>›</span>
                 </button>
                 <button
                   onClick={() => router.push("/reading", { transitionTypes: ["nav-forward"] })}

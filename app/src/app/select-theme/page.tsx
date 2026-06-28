@@ -140,7 +140,7 @@ function SelectThemeContent() {
                 >
                   <div
                     className={cn(
-                      "w-full aspect-square rounded-full transition-all",
+                      "w-full aspect-square rounded-full",
                       isSelected && "ring-[3px] ring-[#19CDCD]",
                     )}
                   >
@@ -168,7 +168,7 @@ function SelectThemeContent() {
             onClick={handleComplete}
             disabled={!selected || isSubmitting}
             className={cn(
-              "w-full h-[54px] rounded-[8px] text-[20px] font-medium transition-colors font-noto",
+              "w-full h-[54px] rounded-[8px] text-[20px] font-medium font-noto",
               selected && !isSubmitting
                 ? "bg-[#31C678] text-white"
                 : "bg-[#F5F5F5] text-[#666666]",

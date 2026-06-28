@@ -202,7 +202,7 @@ export default function RegisterPage() {
                           "w-full px-4 py-3 text-left text-[18px] font-normal font-noto transition-colors",
                           selectedTeam?.id === team.id
                             ? "bg-[#F6FEF8] text-[#46AE78]"
-                            : "text-[#222222] active:bg-[#F5F5F5]"
+                            : "text-[#222222]"
                         )}
                       >
                         {team.name}
@@ -257,7 +257,7 @@ export default function RegisterPage() {
               onClick={() => setStep(2)}
               disabled={!selectedTeam || teams.length === 0}
               className={cn(
-                "w-full h-[54px] rounded-[8px] text-[20px] font-medium transition-colors font-noto",
+                "w-full h-[54px] rounded-[8px] text-[20px] font-medium font-noto",
                 selectedTeam && teams.length > 0
                   ? "bg-[#31C678] text-white"
                   : "bg-[#F5F5F5] text-[#666666]"
@@ -270,7 +270,7 @@ export default function RegisterPage() {
               onClick={handleComplete}
               disabled={!canComplete || isSubmitting}
               className={cn(
-                "flex-1 h-[54px] rounded-[8px] text-[20px] font-medium transition-colors font-noto",
+                "flex-1 h-[54px] rounded-[8px] text-[20px] font-medium font-noto",
                 canComplete && !isSubmitting
                   ? "bg-[#31C678] text-white"
                   : "bg-[#F5F5F5] text-[#666666]"
