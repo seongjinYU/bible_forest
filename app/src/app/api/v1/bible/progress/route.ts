@@ -114,7 +114,7 @@ export async function PATCH(request: Request) {
   const supabase = createSupabaseServerClient();
 
   // 5) 챌린지 기간 검증 (C1)
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const { data: challenge } = await supabase
     .from("challenges")
     .select("id")

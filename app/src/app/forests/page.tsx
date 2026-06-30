@@ -86,6 +86,10 @@ export default async function ForestsPage() {
   const topTeam = [...teamStats].sort((a, b) => b.score - a.score)[0] ?? null;
   const topColor = topTeam ? (TEAM_COLORS[topTeam.name] ?? DEFAULT_COLOR) : DEFAULT_COLOR;
 
+  const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const fetchedAtLabel = `${String(now.getUTCFullYear()).slice(-2)}.${pad(now.getUTCMonth() + 1)}.${pad(now.getUTCDate())} ${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())}`;
+
   const myTeamStat = teamStats.find((t) => t.id === user.team_id);
   const others = teamStats
     .filter((t) => t.id !== user.team_id)
