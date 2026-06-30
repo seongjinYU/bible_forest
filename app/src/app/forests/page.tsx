@@ -84,9 +84,9 @@ export default async function ForestsPage() {
     return { id: team.id, name: team.name, score, tree_count, theme: team.theme ?? null, plantedTrees };
   });
 
-  const now = new Date();
+  const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const pad = (n: number) => String(n).padStart(2, "0");
-  const fetchedAtLabel = `${String(now.getFullYear()).slice(-2)}.${pad(now.getMonth() + 1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  const fetchedAtLabel = `${String(now.getUTCFullYear()).slice(-2)}.${pad(now.getUTCMonth() + 1)}.${pad(now.getUTCDate())} ${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())}`;
 
   const myTeamStat = teamStats.find((t) => t.id === user.team_id);
   const others = teamStats

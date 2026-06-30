@@ -44,11 +44,32 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
-    if (error || !created) {
+    if (error) {
+      // unique violation (23505): 동시 요청으로 직전에 다른 insert가 끼어든 경우
+      // → 방금 생성된 계정을 재조회해서 로그인 처리
+      if (error.code === '23505') {
+        const { data: race } = await supabase
+          .from('users')
+          .select('*')
+          .eq('team_id', team_id)
+          .eq('nickname', nickname)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle()
+        if (race) {
+          user = race
+        } else {
+          return NextResponse.json({ message: '회원가입에 실패했습니다.' }, { status: 500 })
+        }
+      } else {
+        return NextResponse.json({ message: '회원가입에 실패했습니다.' }, { status: 500 })
+      }
+    } else if (!created) {
       return NextResponse.json({ message: '회원가입에 실패했습니다.' }, { status: 500 })
+    } else {
+      user = created
+      isNew = true
     }
-    user = created
-    isNew = true
   }
 
   const cookieStore = await cookies()
