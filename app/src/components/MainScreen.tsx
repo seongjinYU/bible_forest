@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Download, AlertCircle, Pencil, Play, Pause } from "lucide-react";
-import { THEMES, type ThemeKey } from "@/constants/themes";
+import { THEMES } from "@/constants/themes";
 import { useTheme } from "@/context/ThemeContext";
+import { BGM_TITLE, useBgm } from "@/context/BgmContext";
 
 interface Stats {
   trees: number;
@@ -45,18 +46,6 @@ const AVATAR_PALETTE = [
   { bg: "#F5B8D4", fg: "#9B1A5A" },
 ];
 
-const BGM_SRC: Partial<Record<ThemeKey, string>> = {
-  forest: "/assets/forest/bgm.mp3",
-  night: "/assets/night/bgm.mp3",
-  ocean: "/assets/ocean/bgm.mp3",
-};
-const BGM_TITLE: Partial<Record<ThemeKey, string>> = {
-  forest: "Forest Sprout Parade",
-  night: "Starry Bloom",
-  ocean: "Coral Garden",
-};
-const BGM_PREF_KEY = "bgm_on";
-
 const INFO_ITEMS = [
   {
     title: "성경을 1장 읽을 때마다 인증해보세요!",
@@ -83,36 +72,8 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
   const [editValue, setEditValue] = useState(name);
   const [editError, setEditError] = useState("");
   const [editSaving, setEditSaving] = useState(false);
-  const bgmSrc = BGM_SRC[theme];
   const bgmTitle = BGM_TITLE[theme];
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [bgmPlaying, setBgmPlaying] = useState(false);
-
-  useEffect(() => {
-    if (!bgmSrc) return;
-    if (typeof window === "undefined") return;
-    if (localStorage.getItem(BGM_PREF_KEY) !== "1") return;
-    const el = audioRef.current;
-    if (!el) return;
-    el.volume = 0.5;
-    el.play().then(() => setBgmPlaying(true)).catch(() => { /* 자동재생 차단 시 무시 */ });
-  }, [bgmSrc]);
-
-  function toggleBgm() {
-    const el = audioRef.current;
-    if (!el) return;
-    if (bgmPlaying) {
-      el.pause();
-      setBgmPlaying(false);
-      localStorage.setItem(BGM_PREF_KEY, "0");
-    } else {
-      el.volume = 0.5;
-      el.play().then(() => {
-        setBgmPlaying(true);
-        localStorage.setItem(BGM_PREF_KEY, "1");
-      }).catch(() => { /* 재생 실패 무시 */ });
-    }
-  }
+  const { playing: bgmPlaying, toggle: toggleBgm } = useBgm();
   const [toast, setToast] = useState<ToastState>(null);
   const screenRef = useRef<HTMLDivElement>(null);
   const downloadOverlayRef = useRef<HTMLDivElement>(null);
@@ -314,9 +275,8 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
       {/* 콘텐츠 레이어 */}
       <div className="relative z-10 flex flex-col h-svh" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         {/* AppBar */}
-        {bgmSrc && <audio ref={audioRef} src={bgmSrc} loop preload="none" />}
         <div className="h-[44px] flex items-end pb-1 justify-between px-4">
-          {bgmSrc ? (
+          {bgmTitle ? (
             <button
               onClick={toggleBgm}
               className={`h-[30px] px-3 rounded-full border flex items-center gap-1.5 text-[12px] font-pretendard ${

@@ -3,6 +3,7 @@ import { Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import TransitionShell from "@/components/TransitionShell";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { BgmProvider } from "@/context/BgmContext";
 import { getSessionUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { THEMES } from "@/constants/themes";
@@ -51,7 +52,9 @@ export default async function RootLayout({
       <body className="h-full">
         <div className="w-full h-full bg-white flex flex-col relative overflow-hidden" style={{ overscrollBehavior: "none" }}>
           <ThemeProvider theme={theme}>
-            <TransitionShell>{children}</TransitionShell>
+            <BgmProvider theme={theme}>
+              <TransitionShell>{children}</TransitionShell>
+            </BgmProvider>
           </ThemeProvider>
         </div>
       </body>

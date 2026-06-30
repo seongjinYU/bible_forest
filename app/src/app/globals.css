@@ -190,6 +190,12 @@ button:not(:disabled):active,
   opacity: var(--press-opacity);
 }
 
+/* register 페이지는 버튼 눌림 피드백 비활성화 */
+.no-press-fx button:not(:disabled):active {
+  transform: none;
+  opacity: 1;
+}
+
 /* ───────────────────────────────────────────────
    화면 전환: 방향성 슬라이드 (네이티브 push/pop)
    components/TransitionShell 의 <ViewTransition key={pathname}> +

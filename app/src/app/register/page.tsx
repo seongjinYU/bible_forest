@@ -98,7 +98,7 @@ export default function RegisterPage() {
 
   if (step === 3) {
     return (
-      <div className="flex flex-col h-dvh bg-white">
+      <div className="flex flex-col h-dvh bg-white no-press-fx">
         <div className="h-11" />
         <div className="h-[62px]" />
         <div className="flex-1 flex flex-col justify-between px-4 pb-safe">
@@ -120,7 +120,7 @@ export default function RegisterPage() {
 
   if (step === 4) {
     return (
-      <div className="flex flex-col h-dvh bg-white">
+      <div className="flex flex-col h-dvh bg-white no-press-fx">
         <div className="h-11" />
         <div className="h-[62px]" />
         <div className="flex-1 flex flex-col justify-between px-4 pb-safe">
@@ -144,7 +144,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex flex-col h-dvh bg-white">
+    <div className="flex flex-col h-dvh bg-white no-press-fx">
       <div className="h-11" />
 
       {/* AppBar */}
@@ -220,7 +220,7 @@ export default function RegisterPage() {
                           setDropdownOpen(false);
                         }}
                         className={cn(
-                          "w-full px-4 py-3 text-left text-[18px] font-normal font-noto transition-colors",
+                          "w-full px-4 py-3 text-left text-[18px] font-normal font-noto",
                           selectedTeam?.id === team.id
                             ? "bg-[#F6FEF8] text-[#46AE78]"
                             : "text-[#222222]"
