@@ -162,8 +162,14 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
         if (isNaN(num) || num <= 0) continue;
         const ti = imgMap.get(`/assets/${theme}/${num}.png`);
         if (!ti || ti.naturalWidth === 0) continue;
+        // object-contain과 동일하게 원본 비율을 유지한 채 sz×sz 박스 안에 맞춘다.
         const sz = getItemDisplaySize(theme, num);
-        ctx.drawImage(ti, (tree.x / 100) * W - sz / 2, (tree.y / 100) * H - sz * 0.9, sz, sz);
+        const ratio = Math.min(sz / ti.naturalWidth, sz / ti.naturalHeight);
+        const dw = ti.naturalWidth * ratio;
+        const dh = ti.naturalHeight * ratio;
+        const cx = (tree.x / 100) * W;
+        const cy = (tree.y / 100) * H - sz * 0.9 + sz / 2;
+        ctx.drawImage(ti, cx - dw / 2, cy - dh / 2, dw, dh);
       }
 
       // 3. 닉네임 + 팀명 (visibility:hidden 상태에서도 getBoundingClientRect 는 정확함)
