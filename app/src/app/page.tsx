@@ -63,6 +63,7 @@ export default async function Home() {
     <MainScreen
       name={user.nickname}
       team={teamData?.name ?? ""}
+      teamId={user.team_id}
       stats={stats}
       plantedTrees={plantedTrees}
       storageCount={storageCount}

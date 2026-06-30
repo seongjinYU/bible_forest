@@ -76,6 +76,7 @@ export default async function ForestDetailPage({
         <div className="flex-1 relative">
           <ForestDetailStats
             theme={theme}
+            teamId={team.id}
             teamName={team.name}
             treeCount={treeCount}
             score={score}

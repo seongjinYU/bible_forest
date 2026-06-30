@@ -64,9 +64,6 @@ function SelectThemeContent() {
             <h1 className="text-[24px] font-bold leading-[32px] tracking-[-3%] text-[#222222] text-center font-noto whitespace-pre-line">
               {"회원가입이\n완료되었습니다!"}
             </h1>
-            <p className="text-[16px] font-normal leading-[24px] tracking-[-3%] text-[#F32F15] text-center font-noto">
-              다른 기기에서 미션 참여할 시 기록이 사라집니다
-            </p>
           </div>
           <button
             onClick={() => { window.location.href = "/"; }}

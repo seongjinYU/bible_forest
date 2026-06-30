@@ -27,6 +27,7 @@ interface Participant {
 interface MainScreenProps {
   name: string;
   team: string;
+  teamId: string;
   stats: Stats;
   plantedTrees: PlantedTree[];
   storageCount: number;
@@ -43,7 +44,6 @@ const AVATAR_PALETTE = [
   { bg: "#B8D9F5", fg: "#1A3A8B" },
   { bg: "#F5B8D4", fg: "#9B1A5A" },
 ];
-const MAX_AVATARS = 4;
 
 const BGM_SRC: Partial<Record<ThemeKey, string>> = {
   forest: "/assets/forest/bgm.mp3",
@@ -64,7 +64,7 @@ const INFO_ITEMS = [
   },
   {
     title: "인증 시 랜덤으로 나무를 획득할 수 있어요!",
-    sub: "신약일독을 달성하면 특별한 나무를 심을 수 있어요!",
+    sub: "신약일독을 달성하면 특별한 나무가 주어져요!",
   },
   { title: "획득한 나무를 원하는 위치에 심어보세요!" },
   {
@@ -74,7 +74,7 @@ const INFO_ITEMS = [
 
 type ToastState = { message: string; action?: { label: string; onClick: () => void } } | null;
 
-export default function MainScreen({ name, team, stats, plantedTrees, storageCount, totalChapters, lastReadAt, participants = [] }: MainScreenProps) {
+export default function MainScreen({ name, team, teamId, stats, plantedTrees, storageCount, totalChapters, lastReadAt, participants = [] }: MainScreenProps) {
   const router = useRouter();
   const theme = useTheme();
   const [helpOpen, setHelpOpen] = useState(false);
@@ -113,15 +113,10 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
       }).catch(() => { /* 재생 실패 무시 */ });
     }
   }
-  const [showParticipants, setShowParticipants] = useState(false);
-  const [sheetDragY, setSheetDragY] = useState(0);
   const [toast, setToast] = useState<ToastState>(null);
   const screenRef = useRef<HTMLDivElement>(null);
   const downloadOverlayRef = useRef<HTMLDivElement>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const sheetDragStartY = useRef<number | null>(null);
-  const sheetScrollRef = useRef<HTMLDivElement>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
 
   const currentTheme = THEMES[theme];
   const isStarTheme = theme === "night";
@@ -138,20 +133,6 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
     : currentTheme.tagline;
 
   useEffect(() => () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); }, []);
-
-  useEffect(() => {
-    const el = sheetRef.current;
-    if (!el || !showParticipants) return;
-    const onTouchMove = (e: TouchEvent) => {
-      if (sheetDragStartY.current === null) return;
-      const dy = e.touches[0].clientY - sheetDragStartY.current;
-      if (dy <= 0) return;
-      e.preventDefault();
-      setSheetDragY(dy);
-    };
-    el.addEventListener("touchmove", onTouchMove, { passive: false });
-    return () => el.removeEventListener("touchmove", onTouchMove);
-  }, [showParticipants]);
 
   function showToast(message: string, action?: { label: string; onClick: () => void }) {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -435,10 +416,10 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
             <div className="absolute top-1/3 left-0 right-0 flex flex-col items-center px-8 -translate-y-1/2 pointer-events-none">
               <div className={`px-5 py-4 rounded-[16px] flex flex-col items-center gap-1.5 text-center ${isDarkBg ? "bg-white/15 backdrop-blur-sm" : "bg-black/[0.06] backdrop-blur-sm"}`}>
                 <p className={`text-[15px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#333333]"}`}>
-                  {storageCount > 0 ? "첫 번째 나무를 심어보세요!" : "성경을 읽으면 나무를 얻을 수 있어요!"}
+                  성경을 읽고 인증해보세요!
                 </p>
                 <p className={`text-[13px] font-pretendard ${isDarkBg ? "text-white/70" : "text-[#777777]"}`}>
-                  {storageCount > 0 ? "보관함에서 나무를 배치해 숲을 채워보세요" : "10장 읽을 때마다 아이템을 획득해요"}
+                  10장 읽을때마다 획득해요
                 </p>
               </div>
             </div>
@@ -497,7 +478,7 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
 
               <div className="flex items-center justify-between">
                 <button
-                  onClick={() => setShowParticipants(true)}
+                  onClick={() => router.push(`/forests/${teamId}/participants`, { transitionTypes: ["nav-forward"] })}
                   className="flex items-center gap-2 text-left"
                 >
                   <span className={`text-[15px] font-pretendard ${isDarkBg ? "text-white/80" : "text-[#555555]"}`}>참여중</span>
@@ -580,67 +561,6 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
             >
               확인
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* 참여 현황 팝업 */}
-      {showParticipants && (
-        <div
-          className="fixed inset-0 z-50 flex items-end bg-black/40"
-          onClick={() => { setShowParticipants(false); setSheetDragY(0); }}
-        >
-          <div
-            ref={sheetRef}
-            className="w-full bg-white rounded-t-[20px] h-[50vh] flex flex-col"
-            style={{ transform: `translateY(${Math.max(0, sheetDragY)}px)`, transition: sheetDragStartY.current !== null ? "none" : "transform 0.25s ease" }}
-            onClick={(e) => e.stopPropagation()}
-            onTouchStart={(e) => {
-              const atTop = (sheetScrollRef.current?.scrollTop ?? 0) === 0;
-              sheetDragStartY.current = atTop ? e.touches[0].clientY : null;
-            }}
-            onTouchEnd={() => {
-              if (sheetDragY > 80) {
-                setShowParticipants(false);
-                setSheetDragY(0);
-              } else {
-                setSheetDragY(0);
-              }
-              sheetDragStartY.current = null;
-            }}
-          >
-            <div className="flex justify-center pt-3 pb-1 shrink-0">
-              <div className="w-10 h-1 rounded-full bg-[#E0E0E0]" />
-            </div>
-            <div className="px-5 py-3 flex items-center justify-between shrink-0">
-              <h2 className="text-[17px] font-semibold font-pretendard text-[#222222]">팀 참여 현황</h2>
-              <span className="text-[14px] font-pretendard text-[#AAAAAA]">{participants.length}명</span>
-            </div>
-            <div ref={sheetScrollRef} className="overflow-y-auto pb-safe">
-              {participants.map((p, i) => {
-                const { bg, fg } = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
-                const d = new Date(p.joinedAt);
-                const dateLabel = `${String(d.getFullYear()).slice(-2)}.${d.getMonth() + 1}.${d.getDate()}`;
-                return (
-                  <div key={i} className="flex items-center gap-4 px-5 py-3.5 border-b border-[#F0F0F0] last:border-0">
-                    <div
-                      className="w-[44px] h-[44px] rounded-full flex items-center justify-center text-[17px] font-semibold font-pretendard shrink-0"
-                      style={{ backgroundColor: bg, color: fg }}
-                    >
-                      {p.nickname[0]}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[16px] font-semibold font-pretendard text-[#222222] truncate">
-                        {p.nickname} · {p.score}점
-                      </p>
-                      <p className="text-[13px] font-pretendard text-[#AAAAAA] mt-0.5">
-                        {dateLabel}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           </div>
         </div>
       )}
