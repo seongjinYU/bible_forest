@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/context/ThemeContext";
 import { THEMES } from "@/constants/themes";
 import { ELEMENT_NAMES } from "@/constants/elements";
+import { getItemDisplaySize } from "@/constants/itemSizes";
 
 interface PlantedTree {
   species: string;
@@ -108,13 +109,16 @@ export default function PlaceTreeContent({ plantedTrees, previewName, previewTea
           {plantedTrees.map((tree, i) => {
             const num = Number(tree.species);
             if (isNaN(num) || num <= 0) return null;
+            const size = getItemDisplaySize(theme, num);
             return (
               <img
                 key={i}
                 src={`/assets/${theme}/${num}.png`}
                 alt=""
-                className="absolute w-12 h-12 object-contain pointer-events-none"
+                className="absolute object-contain pointer-events-none"
                 style={{
+                  width: size,
+                  height: size,
                   left: `${tree.x}%`,
                   top: `${tree.y}%`,
                   transform: "translate(-50%, -90%)",
@@ -128,8 +132,10 @@ export default function PlaceTreeContent({ plantedTrees, previewName, previewTea
             <img
               src={imgSrc}
               alt=""
-              className="absolute w-12 h-12 object-contain pointer-events-none drop-shadow-lg"
+              className="absolute object-contain pointer-events-none drop-shadow-lg"
               style={{
+                width: getItemDisplaySize(theme, speciesNum),
+                height: getItemDisplaySize(theme, speciesNum),
                 left: `${position.x}%`,
                 top: `${position.y}%`,
                 transform: "translate(-50%, -90%)",
@@ -248,13 +254,16 @@ export default function PlaceTreeContent({ plantedTrees, previewName, previewTea
           {plantedTrees.map((tree, i) => {
             const num = Number(tree.species);
             if (isNaN(num) || num <= 0) return null;
+            const size = getItemDisplaySize(theme, num);
             return (
               <img
                 key={i}
                 src={`/assets/${theme}/${num}.png`}
                 alt=""
-                className="absolute w-12 h-12 object-contain opacity-80"
+                className="absolute object-contain opacity-80"
                 style={{
+                  width: size,
+                  height: size,
                   left: `${tree.x}%`,
                   top: `${tree.y}%`,
                   transform: "translate(-50%, -90%)",
@@ -277,8 +286,12 @@ export default function PlaceTreeContent({ plantedTrees, previewName, previewTea
             <img
               src={imgSrc}
               alt=""
-              className="w-16 h-16 object-contain drop-shadow-lg"
-              style={{ transform: "translate(-50%, -90%)" }}
+              className="object-contain drop-shadow-lg"
+              style={{
+                width: getItemDisplaySize(theme, speciesNum) * 1.33,
+                height: getItemDisplaySize(theme, speciesNum) * 1.33,
+                transform: "translate(-50%, -90%)",
+              }}
             />
           </div>
         )}

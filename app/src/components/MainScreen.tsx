@@ -6,6 +6,7 @@ import { Download, AlertCircle, Pencil, Play, Pause } from "lucide-react";
 import { THEMES } from "@/constants/themes";
 import { useTheme } from "@/context/ThemeContext";
 import { BGM_TITLE, useBgm } from "@/context/BgmContext";
+import { getItemDisplaySize } from "@/constants/itemSizes";
 
 interface Stats {
   trees: number;
@@ -168,7 +169,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
         if (isNaN(num) || num <= 0) continue;
         const ti = imgMap.get(`/assets/${theme}/${num}.png`);
         if (!ti || ti.naturalWidth === 0) continue;
-        const sz = 48; // w-12 h-12
+        const sz = getItemDisplaySize(theme, num);
         ctx.drawImage(ti, (tree.x / 100) * W - sz / 2, (tree.y / 100) * H - sz * 0.9, sz, sz);
       }
 
@@ -237,13 +238,16 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
         {plantedTrees.map((tree, i) => {
           const num = Number(tree.species);
           if (isNaN(num) || num <= 0) return null;
+          const size = getItemDisplaySize(theme, num);
           return (
             <img
               key={i}
               src={`/assets/${theme}/${num}.png`}
               alt=""
-              className="absolute w-12 h-12 object-contain"
+              className="absolute object-contain"
               style={{
+                width: size,
+                height: size,
                 left: `${tree.x}%`,
                 top: `${tree.y}%`,
                 transform: "translate(-50%, -90%)",

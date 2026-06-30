@@ -56,7 +56,7 @@ export default async function StoragePage() {
               아직 획득한 아이템이 없어요
             </p>
             <p className="text-[14px] font-pretendard text-[#999999] text-center leading-relaxed mt-2 whitespace-pre-line">
-              {"성경을 읽고 인증하면\n나무를 획득할 수 있어요!"}
+              {"성경을 읽고 인증해보세요!"}
             </p>
             <p className="text-[13px] font-pretendard text-[#BBBBBB] text-center mt-1.5">
               10장 읽을 때마다 아이템 1개 획득

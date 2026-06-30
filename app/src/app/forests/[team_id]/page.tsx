@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { THEMES } from "@/constants/themes";
 import type { ThemeKey } from "@/constants/themes";
+import { getItemDisplaySize } from "@/constants/itemSizes";
 import ForestDetailStats from "./ForestDetailStats";
 
 export default async function ForestDetailPage({
@@ -56,13 +57,14 @@ export default async function ForestDetailPage({
         {plantedTrees.map((tree, i) => {
           const num = Number(tree.species);
           if (isNaN(num) || num <= 0) return null;
+          const size = getItemDisplaySize(theme, num);
           return (
             <img
               key={i}
               src={`/assets/${theme}/${num}.png`}
               alt=""
-              className="absolute w-12 h-12 object-contain"
-              style={{ left: `${tree.x}%`, top: `${tree.y}%`, transform: "translate(-50%, -90%)" }}
+              className="absolute object-contain"
+              style={{ width: size, height: size, left: `${tree.x}%`, top: `${tree.y}%`, transform: "translate(-50%, -90%)" }}
             />
           );
         })}
