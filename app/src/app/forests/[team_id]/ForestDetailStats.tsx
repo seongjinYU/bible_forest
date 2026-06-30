@@ -26,7 +26,6 @@ const AVATAR_PALETTE = [
   { bg: "#B8D9F5", fg: "#1A3A8B" },
   { bg: "#F5B8D4", fg: "#9B1A5A" },
 ];
-const MAX_AVATARS = 4;
 
 const SUBJECT_PARTICLE: Record<ThemeKey, string> = {
   forest: "은",
@@ -45,7 +44,9 @@ export default function ForestDetailStats({ theme, teamName, treeCount, score, p
   const sheetRef = useRef<HTMLDivElement>(null);
   const sheetScrollRef = useRef<HTMLDivElement>(null);
 
-  const glassCard = isDarkBg ? "bg-white/10 backdrop-blur-md" : "bg-white/60 backdrop-blur-md";
+  const glassCard = isDarkBg
+    ? "bg-white/10 backdrop-blur-md border border-white/10"
+    : "bg-white/20 backdrop-blur-[2px] border border-white/40";
 
   useEffect(() => {
     const el = sheetRef.current;
@@ -82,28 +83,23 @@ export default function ForestDetailStats({ theme, teamName, treeCount, score, p
             <span className={`text-[24px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>점</span>
           </div>
 
-          <button onClick={() => setShowParticipants(true)} className="flex flex-col gap-1 text-left">
+          <button onClick={() => setShowParticipants(true)} className="flex items-center gap-2 text-left">
             <span className={`text-[15px] font-pretendard ${isDarkBg ? "text-white/80" : "text-[#555555]"}`}>참여중</span>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center">
-                {participants.slice(0, MAX_AVATARS).map((p, i) => {
-                  const { bg, fg } = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
-                  return (
-                    <div
-                      key={i}
-                      className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[12px] font-semibold font-pretendard border-[2px] border-white"
-                      style={{ backgroundColor: bg, color: fg, marginLeft: i > 0 ? -8 : 0, zIndex: MAX_AVATARS - i }}
-                    >
-                      {p.nickname[0]}
-                    </div>
-                  );
-                })}
-              </div>
-              <span className={`text-[18px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
-                {participants.length}명
-              </span>
-              <span className={`text-[22px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>›</span>
+            <div className="flex items-center">
+              {participants.slice(0, 3).map((p, i) => {
+                const { bg, fg } = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
+                return (
+                  <div
+                    key={i}
+                    className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[12px] font-semibold font-pretendard border-[2px] border-white"
+                    style={{ backgroundColor: bg, color: fg, marginLeft: i > 0 ? -8 : 0, zIndex: 3 - i }}
+                  >
+                    {p.nickname[0]}
+                  </div>
+                );
+              })}
             </div>
+            <span className={`text-[22px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>›</span>
           </button>
         </div>
       </div>
