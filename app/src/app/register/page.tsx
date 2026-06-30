@@ -23,6 +23,7 @@ export default function RegisterPage() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showExistsPopup, setShowExistsPopup] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,8 +47,9 @@ export default function RegisterPage() {
   const isNameTooLong = name.length > MAX_NAME_LENGTH;
   const canComplete = name.trim().length > 0 && !isNameTooLong;
 
-  async function handleComplete() {
-    if (!selectedTeam || !canComplete) return;
+  async function proceedRegister() {
+    if (!selectedTeam) return;
+    setShowExistsPopup(false);
     setIsSubmitting(true);
     setErrorMessage("");
     const isFirstMember = selectedTeam.member_count === 0;
@@ -73,6 +75,25 @@ export default function RegisterPage() {
     } else {
       setStep(3);
     }
+  }
+
+  async function handleComplete() {
+    if (!selectedTeam || !canComplete) return;
+    setIsSubmitting(true);
+    setErrorMessage("");
+    const params = new URLSearchParams({ team_id: selectedTeam.id, nickname: name.trim() });
+    const res = await fetch(`/api/v1/auth/check-nickname?${params}`);
+    setIsSubmitting(false);
+    if (!res.ok) {
+      setErrorMessage("닉네임 확인에 실패했습니다. 다시 시도해주세요.");
+      return;
+    }
+    const { exists } = await res.json();
+    if (exists) {
+      setShowExistsPopup(true);
+      return;
+    }
+    await proceedRegister();
   }
 
   if (step === 3) {
@@ -281,6 +302,33 @@ export default function RegisterPage() {
           )}
         </div>
       </div>
+
+      {showExistsPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-8">
+          <div className="w-full max-w-[320px] rounded-[14px] bg-white p-6 flex flex-col gap-5">
+            <div className="flex flex-col gap-2 text-center">
+              <p className="text-[18px] font-bold font-noto text-[#222222]">이미 사용 중인 닉네임이에요</p>
+              <p className="text-[14px] font-noto text-[#888888] leading-relaxed">
+                본인 계정이면 이어서 진행하고,<br />아니라면 다른 닉네임을 사용해 주세요.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={proceedRegister}
+                className="w-full h-[50px] rounded-[8px] bg-[#31C678] text-white text-[17px] font-medium font-noto"
+              >
+                본인 계정 이어가기
+              </button>
+              <button
+                onClick={() => setShowExistsPopup(false)}
+                className="w-full h-[50px] rounded-[8px] bg-[#F5F5F5] text-[#666666] text-[17px] font-medium font-noto"
+              >
+                다른 닉네임 쓰기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
