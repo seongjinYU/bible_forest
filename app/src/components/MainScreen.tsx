@@ -2,8 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Download, AlertCircle } from "lucide-react";
-import { THEMES } from "@/constants/themes";
+import { Download, AlertCircle, Pencil, Play, Pause } from "lucide-react";
+import { THEMES, type ThemeKey } from "@/constants/themes";
 import { useTheme } from "@/context/ThemeContext";
 
 interface Stats {
@@ -45,6 +45,18 @@ const AVATAR_PALETTE = [
 ];
 const MAX_AVATARS = 4;
 
+const BGM_SRC: Partial<Record<ThemeKey, string>> = {
+  forest: "/assets/forest/bgm.mp3",
+  night: "/assets/night/bgm.mp3",
+  ocean: "/assets/ocean/bgm.mp3",
+};
+const BGM_TITLE: Partial<Record<ThemeKey, string>> = {
+  forest: "Forest Sprout Parade",
+  night: "Starry Bloom",
+  ocean: "Coral Garden",
+};
+const BGM_PREF_KEY = "bgm_on";
+
 const INFO_ITEMS = [
   {
     title: "성경을 1장 읽을 때마다 인증해보세요!",
@@ -66,6 +78,41 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
   const router = useRouter();
   const theme = useTheme();
   const [helpOpen, setHelpOpen] = useState(false);
+  const [currentName, setCurrentName] = useState(name);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editValue, setEditValue] = useState(name);
+  const [editError, setEditError] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const bgmSrc = BGM_SRC[theme];
+  const bgmTitle = BGM_TITLE[theme];
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [bgmPlaying, setBgmPlaying] = useState(false);
+
+  useEffect(() => {
+    if (!bgmSrc) return;
+    if (typeof window === "undefined") return;
+    if (localStorage.getItem(BGM_PREF_KEY) !== "1") return;
+    const el = audioRef.current;
+    if (!el) return;
+    el.volume = 0.5;
+    el.play().then(() => setBgmPlaying(true)).catch(() => { /* 자동재생 차단 시 무시 */ });
+  }, [bgmSrc]);
+
+  function toggleBgm() {
+    const el = audioRef.current;
+    if (!el) return;
+    if (bgmPlaying) {
+      el.pause();
+      setBgmPlaying(false);
+      localStorage.setItem(BGM_PREF_KEY, "0");
+    } else {
+      el.volume = 0.5;
+      el.play().then(() => {
+        setBgmPlaying(true);
+        localStorage.setItem(BGM_PREF_KEY, "1");
+      }).catch(() => { /* 재생 실패 무시 */ });
+    }
+  }
   const [showParticipants, setShowParticipants] = useState(false);
   const [sheetDragY, setSheetDragY] = useState(0);
   const [toast, setToast] = useState<ToastState>(null);
@@ -193,7 +240,7 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
         ctx.font = `bold 24px 'Pretendard Variable', Pretendard, sans-serif`;
         ctx.fillStyle = isDarkBg ? "rgba(255,255,255,1)" : "#222222";
         ctx.textBaseline = "bottom";
-        ctx.fillText(name, nameR.left - screenRect.left, nameR.bottom - screenRect.top);
+        ctx.fillText(currentName, nameR.left - screenRect.left, nameR.bottom - screenRect.top);
       }
       if (teamR) {
         ctx.font = `16px 'Pretendard Variable', Pretendard, sans-serif`;
@@ -274,7 +321,7 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
         <div className="px-6">
           <div className="flex items-baseline gap-1.5">
             <span data-dl="name" className={`text-[24px] font-bold leading-none font-pretendard ${textPrimary}`}>
-              {name}
+              {currentName}
             </span>
             <span data-dl="team" className={`text-[16px] font-pretendard ${textSecondary}`}>
               {team}
@@ -286,8 +333,22 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
       {/* 콘텐츠 레이어 */}
       <div className="relative z-10 flex flex-col h-svh" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         {/* AppBar */}
+        {bgmSrc && <audio ref={audioRef} src={bgmSrc} loop preload="none" />}
         <div className="h-[44px] flex items-end pb-1 justify-between px-4">
-          <div className="w-10 h-10" />
+          {bgmSrc ? (
+            <button
+              onClick={toggleBgm}
+              className={`h-[30px] px-3 rounded-full border flex items-center gap-1.5 text-[12px] font-pretendard ${
+                isDarkBg ? "border-white/70 text-white" : "border-[#222222]/60 text-[#222222]"
+              }`}
+              aria-label={`${bgmTitle} ${bgmPlaying ? "멈춤" : "재생"}`}
+            >
+              {bgmPlaying ? <Pause size={13} /> : <Play size={13} />}
+              <span>{bgmTitle}</span>
+            </button>
+          ) : (
+            <div className="w-10 h-10" />
+          )}
           <div className="flex items-center gap-2">
             <button
               onClick={handleDownload}
@@ -312,8 +373,15 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
             <div className="flex flex-col gap-1">
               <div className="flex items-baseline gap-1.5">
                 <span className={`text-[24px] font-bold leading-none font-pretendard ${textPrimary}`}>
-                  {name}
+                  {currentName}
                 </span>
+                <button
+                  onClick={() => { setEditValue(currentName); setEditError(""); setEditOpen(true); }}
+                  className="ml-0.5 self-center"
+                  aria-label="닉네임 수정"
+                >
+                  <Pencil size={15} className={textSecondary} />
+                </button>
                 <span className={`text-[16px] font-pretendard ${textSecondary}`}>
                   {team}
                 </span>
@@ -589,6 +657,59 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
               {toast.action.label}
             </button>
           )}
+        </div>
+      )}
+
+      {/* 닉네임 수정 모달 */}
+      {editOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 px-8">
+          <div className="w-full max-w-[320px] rounded-[14px] bg-white p-6 flex flex-col gap-4">
+            <p className="text-[18px] font-bold font-noto text-[#222222] text-center">닉네임 수정</p>
+            <input
+              autoFocus
+              type="text"
+              value={editValue}
+              maxLength={10}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="w-full h-[50px] px-4 rounded-[8px] border border-[#DDDDDD] focus:border-[#46AE78] outline-none text-[16px] font-noto text-[#222222]"
+            />
+            {editError && <p className="text-[13px] text-[#F32F15] font-noto">{editError}</p>}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setEditOpen(false)}
+                className="flex-1 h-[50px] rounded-[8px] bg-[#F5F5F5] text-[#666666] text-[16px] font-medium font-noto"
+              >
+                취소
+              </button>
+              <button
+                disabled={editSaving}
+                onClick={async () => {
+                  const next = editValue.trim();
+                  if (!next) { setEditError("닉네임을 입력해주세요."); return; }
+                  if (next === currentName) { setEditOpen(false); return; }
+                  setEditSaving(true);
+                  setEditError("");
+                  const res = await fetch("/api/v1/users/me", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ nickname: next }),
+                  });
+                  setEditSaving(false);
+                  if (!res.ok) {
+                    const data = await res.json();
+                    setEditError(data.message ?? "수정에 실패했습니다.");
+                    return;
+                  }
+                  setCurrentName(next);
+                  setEditOpen(false);
+                  router.refresh();
+                }}
+                className="flex-1 h-[50px] rounded-[8px] bg-[#31C678] text-white text-[16px] font-medium font-noto disabled:opacity-60"
+              >
+                {editSaving ? "저장 중..." : "저장"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
