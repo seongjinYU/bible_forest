@@ -20,13 +20,20 @@ export async function PATCH(
 
   const supabase = createSupabaseServerClient()
 
-  const { error } = await supabase
+  // theme이 null인 팀만 업데이트 허용 — 동시 요청으로 다른 팀원이 먼저 설정했으면 0 row 반환
+  const { data: updated, error } = await supabase
     .from('teams')
     .update({ theme })
     .eq('id', team_id)
+    .is('theme', null)
+    .select('id')
 
   if (error) {
     return NextResponse.json({ message: '테마 저장에 실패했습니다.' }, { status: 500 })
+  }
+
+  if (!updated || updated.length === 0) {
+    return NextResponse.json({ message: '이미 다른 팀원이 테마를 설정했습니다.' }, { status: 409 })
   }
 
   return NextResponse.json({ success: true })

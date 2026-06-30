@@ -54,19 +54,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "이미 배치된 나무입니다." }, { status: 400 });
   }
 
-  // ── 4) 배치 시점에 z_index 부여 — 팀별로 max(z_index)+1 (팀 내 순차 증가, 렌더 순서) ──
-  const { data: maxRow, error: zErr } = await supabase
-    .from("trees")
-    .select("z_index")
-    .eq("team_id", user.team_id)
-    .not("z_index", "is", null)
-    .order("z_index", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (zErr) {
-    return NextResponse.json({ message: "처리 중 오류가 발생했습니다." }, { status: 500 });
-  }
-  const z = (maxRow?.z_index ?? 0) + 1;
+  // ── 4) 배치 시점에 z_index 부여 — 밀리초 타임스탬프로 원자적 결정 (read-then-write 제거)
+  //      나중에 배치할수록 큰 값 → 렌더 순서(뒤→앞) 자연스럽게 유지됨
+  const z = Date.now();
 
   // ── 5) 배치 (is_planted=false 조건을 한 번 더 걸어 동시 요청 방어) ──
   const { data: updated, error: upErr } = await supabase
