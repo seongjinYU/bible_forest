@@ -367,10 +367,10 @@ export default function MainScreen({ name, team, stats, plantedTrees, storageCou
             <div className="absolute top-1/3 left-0 right-0 flex flex-col items-center px-8 -translate-y-1/2 pointer-events-none">
               <div className={`px-5 py-4 rounded-[16px] flex flex-col items-center gap-1.5 text-center ${isDarkBg ? "bg-white/15 backdrop-blur-sm" : "bg-black/[0.06] backdrop-blur-sm"}`}>
                 <p className={`text-[15px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#333333]"}`}>
-                  {storageCount > 0 ? "첫 번째 나무를 심어보세요!" : "성경을 읽으면 나무를 얻을 수 있어요!"}
+                  성경을 읽고 인증해보세요!
                 </p>
                 <p className={`text-[13px] font-pretendard ${isDarkBg ? "text-white/70" : "text-[#777777]"}`}>
-                  {storageCount > 0 ? "보관함에서 나무를 배치해 숲을 채워보세요" : "10장 읽을 때마다 아이템을 획득해요"}
+                  10장 읽을때마다 획득해요
                 </p>
               </div>
             </div>

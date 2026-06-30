@@ -6,20 +6,6 @@ import ForestsCardGrid from "./ForestsCardGrid";
 import ActivityTicker, { type Activity } from "./ActivityTicker";
 import ForestsPullToRefresh from "./ForestsPullToRefresh";
 
-type TeamColor = { primary: string; illus: string; border: string };
-
-const TEAM_COLORS: Record<string, TeamColor> = {
-  "1팀": { primary: "#FF8A80", illus: "#FFF3F2", border: "#FFCDD2" },
-  "2팀": { primary: "#F48FB1", illus: "#FFF0F5", border: "#F8BBD0" },
-  "3팀": { primary: "#FFAC5F", illus: "#FFF8F0", border: "#FFE0B2" },
-  "4팀": { primary: "#66BB6A", illus: "#F1FBF1", border: "#C8E6C9" },
-  "5팀": { primary: "#64B5F6", illus: "#F0F7FF", border: "#BBDEFB" },
-  "6팀": { primary: "#7986CB", illus: "#F3F4FB", border: "#C5CAE9" },
-  "7팀": { primary: "#BA68C8", illus: "#F9F0FC", border: "#E1BEE7" },
-};
-
-const DEFAULT_COLOR: TeamColor = { primary: "#66BB6A", illus: "#F1FBF1", border: "#C8E6C9" };
-
 type PlantedTree = { species: string; x: number; y: number };
 type TeamStat = { id: string; name: string; score: number; tree_count: number; theme: string | null; plantedTrees: PlantedTree[] };
 
@@ -98,8 +84,9 @@ export default async function ForestsPage() {
     return { id: team.id, name: team.name, score, tree_count, theme: team.theme ?? null, plantedTrees };
   });
 
-  const topTeam = [...teamStats].sort((a, b) => b.score - a.score)[0] ?? null;
-  const topColor = topTeam ? (TEAM_COLORS[topTeam.name] ?? DEFAULT_COLOR) : DEFAULT_COLOR;
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const fetchedAtLabel = `${String(now.getFullYear()).slice(-2)}.${pad(now.getMonth() + 1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 
   const myTeamStat = teamStats.find((t) => t.id === user.team_id);
   const others = teamStats
@@ -116,28 +103,21 @@ export default async function ForestsPage() {
           <ActivityTicker initial={shuffledActivities} />
         )}
 
-        {/* 1위 팀 */}
-        {topTeam && (
-          <div className="pb-5">
-            <p className="text-[13px] text-[#BBBBBB] font-pretendard mb-0.5">
-              가장 많은 성경을 읽은 팀은
-            </p>
-            <div className="flex items-baseline gap-2">
-              <span
-                className="text-[32px] font-bold font-noto leading-none"
-                style={{ color: topColor.primary }}
-              >
-                {topTeam.name}
-              </span>
-              <span className="text-[16px] text-[#BBBBBB] font-pretendard">
-                {topTeam.score}점
-              </span>
+        {/* 스태거 카드 그리드 (헤더는 왼쪽 칼럼 상단에 포함) */}
+        <ForestsCardGrid
+          teams={sortedTeams}
+          myTeamId={user.team_id}
+          header={
+            <div className="pb-2">
+              <h1 className="text-[24px] font-bold font-noto leading-[32px] text-[#222222] whitespace-pre-line">
+                {"현재 팀 순위를\n확인해 보세요!"}
+              </h1>
+              <p className="text-[14px] text-[#AAAAAA] font-pretendard mt-1">
+                {fetchedAtLabel} 기준
+              </p>
             </div>
-          </div>
-        )}
-
-        {/* 스태거 카드 그리드 */}
-        <ForestsCardGrid teams={sortedTeams} myTeamId={user.team_id} />
+          }
+        />
       </ForestsPullToRefresh>
 
       {/* Floating 버튼 — absolute, 배경 컨테이너 없음 */}
@@ -147,7 +127,7 @@ export default async function ForestsPage() {
         className="press-fx absolute left-5 right-5 h-[52px] rounded-full flex items-center justify-center text-white text-[16px] font-noto font-medium"
         style={{
           bottom: "max(1.25rem, calc(env(safe-area-inset-bottom) + 0.75rem))",
-          background: "#31C678",
+          background: "linear-gradient(90deg, #0FC8B8 0%, #13BD7F 100%)",
           boxShadow: "0 6px 24px rgba(49,198,120,0.45)",
         }}
       >

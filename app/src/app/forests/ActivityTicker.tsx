@@ -17,6 +17,7 @@ const LINE_H = 18; // px — text-[13px] × leading-snug(1.375) ≈ 18px
 function Line({ activity }: { activity: Activity }) {
   return (
     <>
+      <span className="mr-1.5">🍀</span>
       <span className="text-white/70">
         {activity.team_name} {activity.nickname}님{" "}
       </span>
@@ -103,29 +104,28 @@ export default function ActivityTicker({ initial }: { initial: Activity[] }) {
 
   return (
     <div className="mb-4">
-      <div className="rounded-[14px] bg-[#111111] px-4 py-3.5 flex items-center gap-2.5">
-        <span className="text-[18px] shrink-0">🍀</span>
+      <div className="rounded-[14px] bg-[#111111] px-4 py-3.5 flex items-center justify-center">
         {/*
           슬롯머신 구조:
           - 바깥 div: height=LINE_H + overflow-hidden → 1줄만 노출
           - 안쪽 div: [현재/다음] 세로 스택, key가 바뀌면 리마운트
           - 애니메이션: 스택 전체를 -18px 올림 → 다음 텍스트가 아래서 밀고 올라옴
         */}
-        <div className="flex-1 overflow-hidden" style={{ height: LINE_H }}>
+        <div className="max-w-full overflow-hidden" style={{ height: LINE_H }}>
           <div
             key={animKey}
             className={sliding && next ? "animate-ticker-push" : undefined}
             style={{ height: sliding && next ? LINE_H * 2 : LINE_H }}
           >
             <p
-              className="text-[13px] font-pretendard leading-snug truncate"
+              className="text-[13px] font-pretendard leading-snug truncate text-center"
               style={{ height: LINE_H }}
             >
               <Line activity={current} />
             </p>
             {sliding && next && (
               <p
-                className="text-[13px] font-pretendard leading-snug truncate"
+                className="text-[13px] font-pretendard leading-snug truncate text-center"
                 style={{ height: LINE_H }}
               >
                 <Line activity={next} />
