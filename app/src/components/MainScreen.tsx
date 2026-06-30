@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Download, AlertCircle, Pencil, Play, Pause } from "lucide-react";
-import { THEMES } from "@/constants/themes";
+import { THEMES, type ThemeKey } from "@/constants/themes";
 import { useTheme } from "@/context/ThemeContext";
 import { BGM_TITLE, useBgm } from "@/context/BgmContext";
 import { getItemDisplaySize } from "@/constants/itemSizes";
@@ -37,6 +37,12 @@ interface MainScreenProps {
   lastReadAt: string | null;
   participants: Participant[];
 }
+
+const ONBOARDING_ICON: Record<ThemeKey, string> = {
+  forest: "🌱",
+  night: "⭐",
+  ocean: "🐟",
+};
 
 const AVATAR_PALETTE = [
   { bg: "#B8E4DA", fg: "#0F6B55" },
@@ -377,15 +383,14 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
         <div className="flex-1 relative">
           {/* 빈 숲 온보딩 힌트 */}
           {plantedTrees.length === 0 && (
-            <div className="absolute top-1/3 left-0 right-0 flex flex-col items-center px-8 -translate-y-1/2 pointer-events-none">
-              <div className={`px-5 py-4 rounded-[16px] flex flex-col items-center gap-1.5 text-center ${isDarkBg ? "bg-white/15 backdrop-blur-sm" : "bg-black/[0.06] backdrop-blur-sm"}`}>
-                <p className={`text-[15px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#333333]"}`}>
+            <div className="absolute top-1/3 left-0 right-0 flex flex-col items-center -translate-y-1/2 pointer-events-none">
+              <div className="px-5 py-3 rounded-full bg-black/70 backdrop-blur-sm flex items-center gap-2">
+                <span className="text-[16px]">{ONBOARDING_ICON[theme]}</span>
+                <p className="text-[15px] font-semibold font-pretendard text-white whitespace-nowrap">
                   성경을 읽고 인증해보세요!
                 </p>
-                <p className={`text-[13px] font-pretendard ${isDarkBg ? "text-white/70" : "text-[#777777]"}`}>
-                  10장 읽을때마다 획득해요
-                </p>
               </div>
+              <div className="-mt-px w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[8px] border-t-black/70" />
             </div>
           )}
 
