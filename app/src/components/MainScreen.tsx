@@ -9,6 +9,7 @@ import { BGM_TITLE, useBgm } from "@/context/BgmContext";
 import { getItemDisplaySize } from "@/constants/itemSizes";
 import { AVATAR_PALETTE } from "@/constants/avatars";
 import { ONBOARDING_ICON } from "@/constants/onboarding";
+import { isSessionExpired } from "@/lib/clientAuth";
 
 interface Stats {
   trees: number;
@@ -603,6 +604,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
                     body: JSON.stringify({ nickname: next }),
                   });
                   setEditSaving(false);
+                  if (isSessionExpired(res)) return;
                   if (!res.ok) {
                     const data = await res.json();
                     setEditError(data.message ?? "수정에 실패했습니다.");

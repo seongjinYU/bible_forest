@@ -9,6 +9,7 @@ import { THEMES } from "@/constants/themes";
 import { ELEMENT_NAMES } from "@/constants/elements";
 import { getItemDisplaySize } from "@/constants/itemSizes";
 import { AVATAR_PALETTE } from "@/constants/avatars";
+import { isSessionExpired } from "@/lib/clientAuth";
 
 interface PlantedTree {
   species: string;
@@ -127,6 +128,7 @@ export default function PlaceTreeContent({
 
     setIsSubmitting(false);
 
+    if (isSessionExpired(res)) return;
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       setErrorMsg(data.message ?? "배치에 실패했습니다.");

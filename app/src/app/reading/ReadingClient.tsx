@@ -8,6 +8,7 @@ import { NT_BOOKS } from "@/constants/bible";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useTheme } from "@/context/ThemeContext";
 import { ELEMENT_NAMES } from "@/constants/elements";
+import { isSessionExpired } from "@/lib/clientAuth";
 
 const COLS = 6;
 const GRADIENT = "linear-gradient(90deg, #0FC8B8 0%, #13BD7F 100%)";
@@ -219,6 +220,7 @@ export default function ReadingClient({
       body: JSON.stringify({ books }),
     });
     setIsSubmitting(false);
+    if (isSessionExpired(res)) return;
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       setErrorMsg(data.message ?? "저장에 실패했습니다.");
