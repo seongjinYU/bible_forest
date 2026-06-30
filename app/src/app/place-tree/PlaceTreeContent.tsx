@@ -2,12 +2,14 @@
 
 import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye } from "lucide-react";
+import { Eye, Download, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/context/ThemeContext";
 import { THEMES } from "@/constants/themes";
 import { ELEMENT_NAMES } from "@/constants/elements";
 import { getItemDisplaySize } from "@/constants/itemSizes";
+import { AVATAR_PALETTE } from "@/constants/avatars";
+import { ONBOARDING_ICON } from "@/constants/onboarding";
 
 interface PlantedTree {
   species: string;
@@ -15,13 +17,39 @@ interface PlantedTree {
   y: number;
 }
 
+interface Stats {
+  trees: number;
+  score: number;
+  participants: number;
+}
+
+interface Participant {
+  nickname: string;
+  score: number;
+  joinedAt: string;
+}
+
 interface Props {
   plantedTrees: PlantedTree[];
   previewName: string;
   previewTeam: string;
+  stats: Stats;
+  storageCount: number;
+  totalChapters: number;
+  lastReadAt: string | null;
+  participants: Participant[];
 }
 
-export default function PlaceTreeContent({ plantedTrees, previewName, previewTeam }: Props) {
+export default function PlaceTreeContent({
+  plantedTrees,
+  previewName,
+  previewTeam,
+  stats,
+  storageCount,
+  totalChapters,
+  lastReadAt,
+  participants,
+}: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const theme = useTheme();
@@ -45,6 +73,21 @@ export default function PlaceTreeContent({ plantedTrees, previewName, previewTea
   const textPrimary = isDarkBg ? "text-white" : "text-[#222222]";
   const textSecondary = isDarkBg ? "text-white/70" : "text-[#999999]";
   const textMuted = isDarkBg ? "text-white/80" : "text-[#555555]";
+  const currentTheme = THEMES[theme];
+  const glassCard = isDarkBg
+    ? "bg-white/10 backdrop-blur-md border border-white/10"
+    : "bg-white/20 backdrop-blur-[2px] border border-white/40";
+
+  const diffDaysForTagline = lastReadAt
+    ? Math.floor((Date.now() - new Date(lastReadAt).getTime()) / 86400000)
+    : null;
+  const hasReadToday = diffDaysForTagline === 0;
+  const completed260 = totalChapters >= 260;
+  const tagline = completed260
+    ? "축하합니다! 신약 일독을 달성했어요!"
+    : hasReadToday
+    ? `벌써 ${totalChapters}장 읽었어요!`
+    : currentTheme.tagline;
 
   function getPos(e: React.PointerEvent<HTMLDivElement>) {
     const rect = forestRef.current?.getBoundingClientRect();
@@ -148,6 +191,7 @@ export default function PlaceTreeContent({ plantedTrees, previewName, previewTea
             className="absolute inset-0 flex flex-col min-h-svh pointer-events-none"
             style={{ paddingTop: "env(safe-area-inset-top)" }}
           >
+            {/* AppBar */}
             <div className="h-[44px] flex items-end pb-1 justify-end px-4">
               <button
                 onClick={() => setPreviewMode(false)}
@@ -156,60 +200,162 @@ export default function PlaceTreeContent({ plantedTrees, previewName, previewTea
                 미리보기 종료
               </button>
             </div>
-            <div className="px-6 pt-0 pb-2 flex items-start justify-between">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-baseline gap-1.5">
-                  <span className={cn("text-[24px] font-bold leading-none font-pretendard", textPrimary)}>
-                    {previewName}
-                  </span>
-                  <span className={cn("text-[16px] font-pretendard", textSecondary)}>
-                    {previewTeam}
-                  </span>
+
+            {/* 유저 정보 */}
+            <div className="mx-4 mt-1 px-4 py-3 flex flex-col gap-3">
+              <div className="flex items-start justify-between">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className={cn("text-[24px] font-bold leading-none font-pretendard", textPrimary)}>
+                      {previewName}
+                    </span>
+                    <span className={cn("text-[16px] font-pretendard", textSecondary)}>
+                      {previewTeam}
+                    </span>
+                  </div>
+                  <p className={cn("text-[16px] font-pretendard", textPrimary)}>
+                    {tagline}
+                  </p>
                 </div>
-                <p className={cn("text-[16px] font-pretendard", textMuted)}>
-                  {THEMES[theme].tagline}
-                </p>
-              </div>
-              <div className={cn(
-                "mt-2 shrink-0 h-[34px] px-[14px] rounded-[20px] border text-[14px] font-pretendard flex items-center",
-                isDarkBg ? "border-white text-white" : "border-[#222222] text-[#222222]",
-              )}>
-                내 보관함
+                <div
+                  style={{ position: "relative" }}
+                  className={cn(
+                    "mt-2 shrink-0 h-[34px] px-[14px] rounded-[20px] border text-[14px] font-pretendard flex items-center",
+                    isDarkBg ? "border-white text-white" : "border-[#222222] text-[#222222]",
+                  )}
+                >
+                  내 보관함
+                  {storageCount > 0 && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: -7,
+                        right: -7,
+                        minWidth: 20,
+                        height: 20,
+                        padding: "0 5px",
+                        borderRadius: 9999,
+                        backgroundColor: currentTheme.color,
+                        color: "#fff",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        lineHeight: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                      }}
+                    >
+                      {storageCount > 99 ? "99+" : storageCount}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* 숲 인터랙션 영역 */}
             <div className="flex-1 relative">
-              <div className="absolute bottom-0 left-0 right-0 px-6 pb-5">
-                <p className={cn("text-[15px] font-pretendard mb-0.5", isDarkBg ? "text-white/80" : "text-[#555555]")}>
-                  {THEMES[theme].statPhrase}
-                </p>
-                <div className="flex items-center gap-[3px] mb-1">
-                  <span className={cn("text-[24px] font-semibold font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>—</span>
-                  <span className={cn("text-[24px] font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>{THEMES[theme].unit}</span>
-                  <div className={cn("w-1 h-1 rounded-full mx-[5px]", isDarkBg ? "bg-white/60" : "bg-[#2E9200]")} />
-                  <span className={cn("text-[24px] font-semibold font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>—</span>
-                  <span className={cn("text-[24px] font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>점</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1">
-                    <span className={cn("text-[18px] font-pretendard", isDarkBg ? "text-white/80" : "text-[#555555]")}>참여중</span>
-                    <span className={cn("text-[18px] font-semibold font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>—</span>
-                    <span className={cn("text-[18px] font-pretendard", isDarkBg ? "text-white/80" : "text-[#555555]")}>명</span>
+              {/* 빈 숲 온보딩 힌트 */}
+              {plantedTrees.length === 0 && (
+                <div className="absolute top-1/3 left-0 right-0 flex flex-col items-center -translate-y-1/2">
+                  <div className="flex flex-col items-center">
+                    <div className="px-5 py-3 rounded-full bg-black/70 backdrop-blur-sm flex items-center gap-2">
+                      <span className="text-[16px]">{ONBOARDING_ICON[theme]}</span>
+                      <p className="text-[15px] font-semibold font-pretendard text-white whitespace-nowrap">
+                        성경을 읽고 인증해보세요!
+                      </p>
+                    </div>
+                    <div className="-mt-px w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[8px] border-t-black/70" />
                   </div>
-                  <div
-                    className="h-[40px] px-5 rounded-full text-white text-[15px] font-semibold font-pretendard flex items-center"
-                    style={{ backgroundColor: THEMES[theme].color }}
-                  >
-                    인증하기
+                </div>
+              )}
+
+              {/* 통계 오버레이 */}
+              <div className="absolute bottom-0 left-0 right-0 px-4 pb-3">
+                <div className={cn("rounded-[20px] px-5 py-4", glassCard)}>
+                  <p className={cn("text-[15px] font-pretendard mb-0.5", isDarkBg ? "text-white/80" : "text-[#555555]")}>
+                    {currentTheme.statPhrase}
+                  </p>
+                  <div className="flex items-center gap-[3px] mb-3">
+                    <span className={cn("text-[24px] font-semibold font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>
+                      {stats.trees}
+                    </span>
+                    <span className={cn("text-[24px] font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>{currentTheme.unit}</span>
+                    <div className={cn("w-1 h-1 rounded-full mx-[5px]", isDarkBg ? "bg-white/60" : "bg-[#2E9200]")} />
+                    <span className={cn("text-[24px] font-semibold font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>
+                      {stats.score}
+                    </span>
+                    <span className={cn("text-[24px] font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>점</span>
+                  </div>
+
+                  {/* 진행률 바 */}
+                  {(() => {
+                    const done = totalChapters % 10;
+                    const progressPct = completed260 ? 100 : done / 10 * 100;
+                    const nudge = diffDaysForTagline === null ? null : diffDaysForTagline === 0 ? "오늘 인증했어요" : diffDaysForTagline === 1 ? "어제 마지막으로 인증했어요" : `${diffDaysForTagline}일째 인증을 안 했어요`;
+                    const isWarning = diffDaysForTagline !== null && diffDaysForTagline >= 2;
+                    return (
+                      <div className="flex flex-col gap-1 mb-3">
+                        <div className="flex items-center justify-between">
+                          <span className={cn("text-[13px] font-pretendard", isDarkBg ? "text-white/70" : "text-[#888888]")}>
+                            {completed260 ? "신약일독 완료" : "다음 아이템 획득까지"}
+                          </span>
+                          <span className={cn("text-[13px] font-semibold font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>
+                            {completed260 ? "260/260장" : `${done}/10장 남았어요!`}
+                          </span>
+                        </div>
+                        <div className={cn("h-1.5 rounded-full", isDarkBg ? "bg-white/20" : "bg-black/10")}>
+                          <div className="h-full rounded-full" style={{ width: `${progressPct}%`, backgroundColor: currentTheme.color }} />
+                        </div>
+                        {nudge && (
+                          <p
+                            className="text-[12px] font-pretendard text-right"
+                            style={{ color: isWarning ? "#FF6B6B" : diffDaysForTagline === 0 ? currentTheme.color : isDarkBg ? "rgba(255,255,255,0.5)" : "#AAAAAA" }}
+                          >
+                            {nudge}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={cn("text-[15px] font-pretendard", isDarkBg ? "text-white/80" : "text-[#555555]")}>참여중</span>
+                      <div className="flex items-center">
+                        {participants.slice(0, 3).map((p, i) => {
+                          const { bg, fg } = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
+                          return (
+                            <div
+                              key={i}
+                              className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[12px] font-semibold font-pretendard border-[2px] border-white"
+                              style={{ backgroundColor: bg, color: fg, marginLeft: i > 0 ? -8 : 0, zIndex: 3 - i }}
+                            >
+                              {p.nickname[0]}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <span className={cn("text-[22px] font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>›</span>
+                    </div>
+                    <div
+                      className="h-[40px] px-5 rounded-full text-white text-[15px] font-semibold font-pretendard flex items-center"
+                      style={{ backgroundColor: currentTheme.color }}
+                    >
+                      인증하기
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* 다른 숲 */}
             <div className="px-6 pb-safe pt-3">
               <div
                 className="w-full h-[48px] rounded-[8px] flex items-center justify-center text-[16px] font-pretendard text-white"
-                style={{ backgroundColor: THEMES[theme].color }}
+                style={{ backgroundColor: currentTheme.color }}
               >
-                {THEMES[theme].forumsLabel}
+                {currentTheme.forumsLabel}
               </div>
             </div>
           </div>

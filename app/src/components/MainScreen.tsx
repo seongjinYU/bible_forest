@@ -3,10 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Download, AlertCircle, Pencil, Play, Pause } from "lucide-react";
-import { THEMES, type ThemeKey } from "@/constants/themes";
+import { THEMES } from "@/constants/themes";
 import { useTheme } from "@/context/ThemeContext";
 import { BGM_TITLE, useBgm } from "@/context/BgmContext";
 import { getItemDisplaySize } from "@/constants/itemSizes";
+import { AVATAR_PALETTE } from "@/constants/avatars";
+import { ONBOARDING_ICON } from "@/constants/onboarding";
 
 interface Stats {
   trees: number;
@@ -37,21 +39,6 @@ interface MainScreenProps {
   lastReadAt: string | null;
   participants: Participant[];
 }
-
-const ONBOARDING_ICON: Record<ThemeKey, string> = {
-  forest: "🌱",
-  night: "⭐",
-  ocean: "🐟",
-};
-
-const AVATAR_PALETTE = [
-  { bg: "#B8E4DA", fg: "#0F6B55" },
-  { bg: "#F5C5A8", fg: "#B5451A" },
-  { bg: "#F5DDB8", fg: "#8B5A10" },
-  { bg: "#D4B8F5", fg: "#5A1A9B" },
-  { bg: "#B8D9F5", fg: "#1A3A8B" },
-  { bg: "#F5B8D4", fg: "#9B1A5A" },
-];
 
 const INFO_ITEMS = [
   {
