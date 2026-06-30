@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Download, AlertCircle, Pencil, Play, Pause } from "lucide-react";
-import { THEMES } from "@/constants/themes";
+import { THEMES, type ThemeKey } from "@/constants/themes";
 import { useTheme } from "@/context/ThemeContext";
 import { BGM_TITLE, useBgm } from "@/context/BgmContext";
 import { getItemDisplaySize } from "@/constants/itemSizes";
@@ -39,6 +39,12 @@ interface MainScreenProps {
   lastReadAt: string | null;
   participants: Participant[];
 }
+
+const PROGRESS_GRADIENT: Record<ThemeKey, string> = {
+  forest: "linear-gradient(90deg, #0FC8B8 0%, #13BD7F 100%)",
+  night: "linear-gradient(90deg, #632AFF 0%, #E18DFF 100%)",
+  ocean: "linear-gradient(90deg, #008DFF 0%, #9A47FF 100%)",
+};
 
 const INFO_ITEMS = [
   {
@@ -426,12 +432,29 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
                       </span>
                     </div>
                     <div className={`h-1.5 rounded-full ${isDarkBg ? "bg-white/20" : "bg-black/10"}`}>
-                      <div className="h-full rounded-full" style={{ width: `${progressPct}%`, backgroundColor: currentTheme.color }} />
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${progressPct}%`,
+                          background: PROGRESS_GRADIENT[theme],
+                        }}
+                      />
                     </div>
                     {nudge && (
                       <p
                         className="text-[12px] font-pretendard text-right"
-                        style={{ color: isWarning ? "#FF6B6B" : diffDays === 0 ? currentTheme.color : isDarkBg ? "rgba(255,255,255,0.5)" : "#AAAAAA" }}
+                        style={
+                          isWarning
+                            ? { color: "#FF6B6B" }
+                            : diffDays === 0
+                            ? {
+                                background: PROGRESS_GRADIENT[theme],
+                                backgroundClip: "text",
+                                WebkitBackgroundClip: "text",
+                                color: "transparent",
+                              }
+                            : { color: isDarkBg ? "rgba(255,255,255,0.5)" : "#AAAAAA" }
+                        }
                       >
                         {nudge}
                       </p>

@@ -2,14 +2,13 @@
 
 import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, Download, AlertCircle } from "lucide-react";
+import { Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/context/ThemeContext";
 import { THEMES } from "@/constants/themes";
 import { ELEMENT_NAMES } from "@/constants/elements";
 import { getItemDisplaySize } from "@/constants/itemSizes";
 import { AVATAR_PALETTE } from "@/constants/avatars";
-import { ONBOARDING_ICON } from "@/constants/onboarding";
 
 interface PlantedTree {
   species: string;
@@ -192,10 +191,10 @@ export default function PlaceTreeContent({
             style={{ paddingTop: "env(safe-area-inset-top)" }}
           >
             {/* AppBar */}
-            <div className="h-[44px] flex items-end pb-1 justify-end px-4">
+            <div className="px-4 pt-2">
               <button
                 onClick={() => setPreviewMode(false)}
-                className="pointer-events-auto h-[34px] px-4 rounded-full bg-black text-white text-[13px] font-medium font-pretendard"
+                className="pointer-events-auto w-full h-[44px] rounded-[8px] bg-black text-white text-[14px] font-medium font-pretendard"
               >
                 미리보기 종료
               </button>
@@ -255,21 +254,6 @@ export default function PlaceTreeContent({
 
             {/* 숲 인터랙션 영역 */}
             <div className="flex-1 relative">
-              {/* 빈 숲 온보딩 힌트 */}
-              {plantedTrees.length === 0 && (
-                <div className="absolute top-1/3 left-0 right-0 flex flex-col items-center -translate-y-1/2">
-                  <div className="flex flex-col items-center">
-                    <div className="px-5 py-3 rounded-full bg-black/70 backdrop-blur-sm flex items-center gap-2">
-                      <span className="text-[16px]">{ONBOARDING_ICON[theme]}</span>
-                      <p className="text-[15px] font-semibold font-pretendard text-white whitespace-nowrap">
-                        성경을 읽고 인증해보세요!
-                      </p>
-                    </div>
-                    <div className="-mt-px w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[8px] border-t-black/70" />
-                  </div>
-                </div>
-              )}
-
               {/* 통계 오버레이 */}
               <div className="absolute bottom-0 left-0 right-0 px-4 pb-3">
                 <div className={cn("rounded-[20px] px-5 py-4", glassCard)}>

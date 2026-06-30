@@ -185,6 +185,29 @@
   animation: bounce-ball 1.8s infinite;
 }
 
+/* 오로라 텍스트: 베이스 색(흰/검정)과 테마 고유색이 자연스레 흐르며 반복되는 그라데이션.
+   --aurora-base / --aurora-accent 두 변수만 테마별로 주입하면 된다. */
+@keyframes aurora-text {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.aurora-text {
+  background-image: linear-gradient(
+    90deg,
+    var(--aurora-base) 0%,
+    var(--aurora-accent) 25%,
+    var(--aurora-base) 50%,
+    var(--aurora-accent) 75%,
+    var(--aurora-base) 100%
+  );
+  background-size: 300% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: aurora-text 6s ease-in-out infinite;
+}
+
 /* ───────────────────────────────────────────────
    버튼 눌림(press) 피드백 — 누르는 동안 축소 + 흐려져 탭 반응을 전달.
    @layer 밖(unlayered)에 둬서 Tailwind 유틸리티(@layer utilities)보다

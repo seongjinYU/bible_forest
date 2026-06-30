@@ -191,6 +191,7 @@ export default function ReadingClient({
     if (!dragState) return;
     const { startCh, currentCh, mode } = dragState;
     if (startCh === currentCh) {
+      navigator.vibrate?.(5);
       toggleChapter(startCh);
     } else {
       commitDragRange(startCh, currentCh, mode);
