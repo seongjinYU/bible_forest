@@ -206,6 +206,7 @@ export default function ReadingClient({
   }
 
   async function handleConfirm() {
+    if (isSubmitting) return;
     setShowConfirm(false);
     setIsSubmitting(true);
     const books = changedBooks.map((name) => ({
@@ -470,7 +471,11 @@ export default function ReadingClient({
               )}
             </div>
 
-            <button onClick={handleConfirm} className="w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto">
+            <button
+              onClick={handleConfirm}
+              disabled={isSubmitting}
+              className="w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto disabled:opacity-50"
+            >
               확인
             </button>
           </div>

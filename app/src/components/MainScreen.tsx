@@ -227,8 +227,8 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
   const textSecondary = isDarkBg ? "text-white/70" : "text-[#999999]";
   const textMuted = isDarkBg ? "text-white/80" : "text-[#555555]";
   const glassCard = isDarkBg
-    ? "bg-white/10 backdrop-blur-md border border-white/10"
-    : "bg-white/20 backdrop-blur-[2px] border border-white/40";
+    ? "bg-[#FFFFFF1A] backdrop-blur-[1px] border border-white/10"
+    : "bg-[#FFFFFF1A] backdrop-blur-[1px] border border-white/40";
 
 
   return (
@@ -591,6 +591,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
               <button
                 disabled={editSaving}
                 onClick={async () => {
+                  if (editSaving) return;
                   const next = editValue.trim();
                   if (!next) { setEditError("닉네임을 입력해주세요."); return; }
                   if (next === currentName) { setEditOpen(false); return; }

@@ -24,6 +24,7 @@ export default function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [showExistsPopup, setShowExistsPopup] = useState(false);
+  const [pendingTeam, setPendingTeam] = useState<Team | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -47,16 +48,19 @@ export default function RegisterPage() {
   const isNameTooLong = name.length > MAX_NAME_LENGTH;
   const canComplete = name.trim().length > 0 && !isNameTooLong;
 
-  async function proceedRegister() {
-    if (!selectedTeam) return;
+  // team 인자를 명시적으로 받아 클로저에 캡처된 stale한 selectedTeam을 쓰지 않도록 한다.
+  // (handleComplete에서 최신 member_count로 갱신한 팀 정보를 그대로 넘겨받아 판단해야
+  //  "팀 목록 로드 시점"이 아닌 "제출 직전 시점" 기준으로 1번째 멤버 여부를 가른다.)
+  async function proceedRegister(team: Team) {
+    if (isSubmitting) return;
     setShowExistsPopup(false);
     setIsSubmitting(true);
     setErrorMessage("");
-    const isFirstMember = selectedTeam.member_count === 0;
+    const isFirstMember = team.member_count === 0;
     const res = await fetch("/api/v1/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nickname: name.trim(), team_id: selectedTeam.id }),
+      body: JSON.stringify({ nickname: name.trim(), team_id: team.id }),
     });
     setIsSubmitting(false);
     const data = await res.json();
@@ -71,17 +75,33 @@ export default function RegisterPage() {
     }
     // 신규 가입
     if (isFirstMember) {
-      router.push(`/select-theme?team_id=${selectedTeam.id}`, { transitionTypes: ["nav-forward"] });
+      router.push(`/select-theme?team_id=${team.id}`, { transitionTypes: ["nav-forward"] });
     } else {
       setStep(3);
     }
   }
 
   async function handleComplete() {
-    if (!selectedTeam || !canComplete) return;
+    if (!selectedTeam || !canComplete || isSubmitting) return;
     setIsSubmitting(true);
     setErrorMessage("");
-    const params = new URLSearchParams({ team_id: selectedTeam.id, nickname: name.trim() });
+
+    // 팀 목록을 로드한 시점과 제출 시점 사이에 다른 사용자가 먼저 가입했을 수 있으므로,
+    // member_count(테마 선택 화면 분기에 쓰임)를 제출 직전에 다시 확인해 stale 윈도우를 줄인다.
+    let teamForSubmit = selectedTeam;
+    try {
+      const teamsRes = await fetch("/api/v1/teams");
+      const teamsData: { teams: Team[] } = await teamsRes.json();
+      const latest = (teamsData.teams ?? []).find((t) => t.id === selectedTeam.id);
+      if (latest) {
+        teamForSubmit = latest;
+        setSelectedTeam(latest);
+      }
+    } catch {
+      // 최신화 실패 시에도 가입 자체는 막지 않고 기존 값으로 진행
+    }
+
+    const params = new URLSearchParams({ team_id: teamForSubmit.id, nickname: name.trim() });
     const res = await fetch(`/api/v1/auth/check-nickname?${params}`);
     setIsSubmitting(false);
     if (!res.ok) {
@@ -90,10 +110,11 @@ export default function RegisterPage() {
     }
     const { exists } = await res.json();
     if (exists) {
+      setPendingTeam(teamForSubmit);
       setShowExistsPopup(true);
       return;
     }
-    await proceedRegister();
+    await proceedRegister(teamForSubmit);
   }
 
   if (step === 3) {
@@ -314,7 +335,7 @@ export default function RegisterPage() {
             </div>
             <div className="flex flex-col gap-2">
               <button
-                onClick={proceedRegister}
+                onClick={() => pendingTeam && proceedRegister(pendingTeam)}
                 className="w-full h-[50px] rounded-[8px] bg-[#31C678] text-white text-[17px] font-medium font-noto"
               >
                 본인 계정 이어가기

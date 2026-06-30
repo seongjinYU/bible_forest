@@ -37,7 +37,7 @@ function SelectThemeContent() {
   const [done, setDone] = useState(false);
 
   async function handleComplete() {
-    if (!selected || !teamId) return;
+    if (!selected || !teamId || isSubmitting) return;
     setIsSubmitting(true);
     setErrorMessage("");
     const res = await fetch(`/api/v1/teams/${teamId}/theme`, {

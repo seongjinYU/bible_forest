@@ -74,8 +74,8 @@ export default function PlaceTreeContent({
   const textMuted = isDarkBg ? "text-white/80" : "text-[#555555]";
   const currentTheme = THEMES[theme];
   const glassCard = isDarkBg
-    ? "bg-white/10 backdrop-blur-md border border-white/10"
-    : "bg-white/20 backdrop-blur-[2px] border border-white/40";
+    ? "bg-[#FFFFFF1A] backdrop-blur-[1px] border border-white/10"
+    : "bg-[#FFFFFF1A] backdrop-blur-[1px] border border-white/40";
 
   const diffDaysForTagline = lastReadAt
     ? Math.floor((Date.now() - new Date(lastReadAt).getTime()) / 86400000)
