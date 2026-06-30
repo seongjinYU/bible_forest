@@ -384,13 +384,15 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
           {/* 빈 숲 온보딩 힌트 */}
           {plantedTrees.length === 0 && (
             <div className="absolute top-1/3 left-0 right-0 flex flex-col items-center -translate-y-1/2 pointer-events-none">
-              <div className="px-5 py-3 rounded-full bg-black/70 backdrop-blur-sm flex items-center gap-2">
-                <span className="text-[16px]">{ONBOARDING_ICON[theme]}</span>
-                <p className="text-[15px] font-semibold font-pretendard text-white whitespace-nowrap">
-                  성경을 읽고 인증해보세요!
-                </p>
+              <div className="animate-bounce-ball flex flex-col items-center">
+                <div className="px-5 py-3 rounded-full bg-black/70 backdrop-blur-sm flex items-center gap-2">
+                  <span className="text-[16px]">{ONBOARDING_ICON[theme]}</span>
+                  <p className="text-[15px] font-semibold font-pretendard text-white whitespace-nowrap">
+                    성경을 읽고 인증해보세요!
+                  </p>
+                </div>
+                <div className="-mt-px w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[8px] border-t-black/70" />
               </div>
-              <div className="-mt-px w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[8px] border-t-black/70" />
             </div>
           )}
 

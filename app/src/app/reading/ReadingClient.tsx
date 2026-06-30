@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -99,6 +99,14 @@ export default function ReadingClient({
   // 드래그 선택 상태
   const gridRef = useRef<HTMLDivElement>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
+
+  // 드롭다운: 열릴 때 현재 선택된 책으로 스크롤(순서는 그대로 유지)
+  const dropdownListRef = useRef<HTMLDivElement>(null);
+  const selectedBookItemRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    selectedBookItemRef.current?.scrollIntoView({ block: "center" });
+  }, [dropdownOpen]);
 
   const draft = draftByBook.get(selectedBook.name) ?? new Set<number>();
 
@@ -274,18 +282,20 @@ export default function ReadingClient({
         {dropdownOpen && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(false)} />
-            <div className="absolute left-5 top-full mt-1 z-50 bg-white border border-[#EEEEEE] rounded-[12px] shadow-lg max-h-[280px] overflow-y-auto w-[200px]">
+            <div ref={dropdownListRef} className="absolute left-5 top-full mt-1 z-50 bg-white border border-[#EEEEEE] rounded-[12px] shadow-lg max-h-[280px] overflow-y-auto w-[200px]">
               {NT_BOOKS.map((book) => {
                 const cnt = (draftByBook.get(book.name) ?? new Set()).size;
+                const isSelected = selectedBook.name === book.name;
                 return (
                   <button
                     key={book.name}
+                    ref={isSelected ? selectedBookItemRef : undefined}
                     onClick={() => selectBook(book)}
                     className={cn(
                       "w-full text-left px-4 py-3 text-[15px] font-noto border-b border-[#F5F5F5] last:border-0 flex items-center justify-between",
-                      selectedBook.name === book.name ? "font-semibold" : "text-[#222222]",
+                      isSelected ? "font-semibold" : "text-[#222222]",
                     )}
-                    style={selectedBook.name === book.name ? { color: "#0FC8B8" } : undefined}
+                    style={isSelected ? { color: "#0FC8B8" } : undefined}
                   >
                     <span>{book.name}</span>
                     {cnt > 0 && (
@@ -509,14 +519,12 @@ export default function ReadingClient({
                     </p>
                   </div>
                   <div className="w-[120px] h-[120px] rounded-full bg-[#F5F5F5] flex items-center justify-center">
-                    {isNumbered ? (
+                    {isNumbered && (
                       <img
                         src={`/assets/${theme}/${speciesNum}.png`}
                         alt={name}
                         className="w-[80px] h-[80px] object-contain"
                       />
-                    ) : (
-                      <span className="text-[56px]">🌳</span>
                     )}
                   </div>
                   {name && (

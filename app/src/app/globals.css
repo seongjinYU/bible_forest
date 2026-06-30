@@ -170,6 +170,21 @@
   animation: ticker-push 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* 공이 튀는 듯한 바운스: 매 구간을 ease-out(상승)/ease-in(하강)으로 나눠
+   각 바운스의 정점·착지가 자연스럽게 감속·가속되도록 한다. */
+@keyframes bounce-ball {
+  0%, 100% { transform: translateY(0); animation-timing-function: ease-out; }
+  20%      { transform: translateY(-12px); animation-timing-function: ease-in; }
+  40%      { transform: translateY(0); animation-timing-function: ease-out; }
+  55%      { transform: translateY(-6px); animation-timing-function: ease-in; }
+  70%      { transform: translateY(0); animation-timing-function: ease-out; }
+  80%      { transform: translateY(-2px); animation-timing-function: ease-in; }
+  90%      { transform: translateY(0); }
+}
+.animate-bounce-ball {
+  animation: bounce-ball 1.8s infinite;
+}
+
 /* ───────────────────────────────────────────────
    버튼 눌림(press) 피드백 — 누르는 동안 축소 + 흐려져 탭 반응을 전달.
    @layer 밖(unlayered)에 둬서 Tailwind 유틸리티(@layer utilities)보다
