@@ -2,31 +2,22 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Download, AlertCircle, Play, Pause, Plus } from "lucide-react";
+import { Download, AlertCircle, Play, Pause } from "lucide-react";
 import { THEMES, type ThemeKey } from "@/constants/themes";
 import { useTheme } from "@/context/ThemeContext";
 import { BGM_TITLE, useBgm } from "@/context/BgmContext";
 import { getItemDisplaySize } from "@/constants/itemSizes";
-import { AVATAR_PALETTE } from "@/constants/avatars";
 import { ONBOARDING_ICON, ONBOARDING_HINT_TEXT } from "@/constants/onboarding";
 import { isSessionExpired } from "@/lib/clientAuth";
+import ForestBackground, { type PlantedTree } from "@/components/forest/ForestBackground";
+import ForestStatsCard from "@/components/forest/ForestStatsCard";
+import ForumsCta from "@/components/forest/ForumsCta";
+import type { Participant } from "@/components/forest/ParticipantAvatars";
 
 interface Stats {
   trees: number;
   score: number;
   participants: number;
-}
-
-interface PlantedTree {
-  species: string;
-  x: number;
-  y: number;
-}
-
-interface Participant {
-  nickname: string;
-  score: number;
-  joinedAt: string;
 }
 
 interface MainScreenProps {
@@ -40,12 +31,6 @@ interface MainScreenProps {
   lastReadAt: string | null;
   participants: Participant[];
 }
-
-const PROGRESS_GRADIENT: Record<ThemeKey, string> = {
-  forest: "linear-gradient(90deg, #0FC8B8 0%, #13BD7F 100%)",
-  night: "linear-gradient(90deg, #632AFF 0%, #E18DFF 100%)",
-  ocean: "linear-gradient(90deg, #008DFF 0%, #9A47FF 100%)",
-};
 
 const INFO_ITEMS = [
   {
@@ -227,39 +212,10 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
   const textPrimary = isDarkBg ? "text-white" : "text-[#222222]";
   const textSecondary = isDarkBg ? "text-white/70" : "text-[#999999]";
   const textMuted = isDarkBg ? "text-white/80" : "text-[#555555]";
-  const glassCard = "bg-[#FFFFFF1A] backdrop-blur-[1px] border-[0.5px] border-white";
-
 
   return (
     <div ref={screenRef} className="relative h-svh overflow-hidden">
-      {/* 전체화면 배경 */}
-      <div className="absolute inset-0">
-        <img src={`/assets/${theme}/bg.png`} alt="" className="w-full h-full object-cover" />
-      </div>
-
-      {/* 배치된 나무 레이어 */}
-      <div className="absolute inset-0 z-[1] pointer-events-none">
-        {plantedTrees.map((tree, i) => {
-          const num = Number(tree.species);
-          if (isNaN(num) || num <= 0) return null;
-          const size = getItemDisplaySize(theme, num);
-          return (
-            <img
-              key={i}
-              src={`/assets/${theme}/${num}.png`}
-              alt=""
-              className="absolute object-contain"
-              style={{
-                width: size,
-                height: size,
-                left: `${tree.x}%`,
-                top: `${tree.y}%`,
-                transform: "translate(-50%, -90%)",
-              }}
-            />
-          );
-        })}
-      </div>
+      <ForestBackground theme={theme} plantedTrees={plantedTrees} />
 
       {/* 다운로드 전용 오버레이 — 이미지 캡처 시에만 표시 */}
       <div
@@ -288,7 +244,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
             <button
               onClick={toggleBgm}
               className={`min-w-[105px] h-[30px] rounded-[30px] border flex items-center gap-1 text-[12px] font-pretendard whitespace-nowrap ${
-                isDarkBg ? "border-white text-white" : "border-[#31C678] text-[#222222]"
+                isDarkBg ? "border-white text-white" : "border-[#31C678] text-[#31C678]"
               }`}
               style={{
                 backgroundColor: isDarkBg ? "#FFFFFF1A" : "#31C6781A",
@@ -299,8 +255,12 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
               }}
               aria-label={`${bgmTitle} ${bgmPlaying ? "멈춤" : "재생"}`}
             >
-              {bgmPlaying ? <Pause size={13} /> : <Play size={13} />}
               <span>{bgmTitle}</span>
+              {bgmPlaying ? (
+                <Pause size={13} fill="currentColor" />
+              ) : (
+                <Play size={13} fill="currentColor" />
+              )}
             </button>
           ) : (
             <div className="w-10 h-10" />
@@ -410,124 +370,18 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
             </div>
           )}
 
-          {/* 통계 오버레이 */}
-          <div className="absolute bottom-0 left-0 right-0 px-6 pb-2">
-            <div className={`rounded-[8px] px-5 py-4 ${glassCard}`}>
-              <p className={`text-[15px] font-pretendard mb-0.5 ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
-                {currentTheme.statPhrase}
-              </p>
-              <div className="flex items-center gap-[3px] mb-3">
-                <span className={`text-[18px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
-                  {stats.trees}
-                </span>
-                <span className={`text-[18px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>{currentTheme.unit}</span>
-                <div className={`w-1 h-1 rounded-full mx-[5px] ${isDarkBg ? "bg-white/60" : "bg-[#2E9200]"}`} />
-                <span className={`text-[18px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
-                  {stats.score}
-                </span>
-                <span className={`text-[18px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>점</span>
-              </div>
-
-              {/* 진행률 바 */}
-              {(() => {
-                const completed = totalChapters >= 260;
-                const done = totalChapters % 10;
-                const progressPct = completed ? 100 : done / 10 * 100;
-                const diffDays = lastReadAt ? Math.floor((Date.now() - new Date(lastReadAt).getTime()) / 86400000) : null;
-                const nudge = diffDays === null ? null : diffDays === 0 ? "오늘 인증했어요" : diffDays === 1 ? "어제 마지막으로 인증했어요" : `${diffDays}일째 인증을 안 했어요`;
-                const isWarning = diffDays !== null && diffDays >= 2;
-                return (
-                  <div className="flex flex-col gap-1 mb-3">
-                    <span className={`text-[14px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
-                      {completed ? "신약일독 완료" : "다음 아이템 획득까지"}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 rounded-full bg-white/60">
-                        <div
-                          className="h-full rounded-full"
-                          style={{
-                            width: `${progressPct}%`,
-                            background: PROGRESS_GRADIENT[theme],
-                          }}
-                        />
-                      </div>
-                      <span className={`text-[13px] font-semibold font-pretendard shrink-0 ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
-                        {completed ? "260/260" : `${done}/10`}
-                      </span>
-                    </div>
-                    {nudge && (
-                      <p
-                        className="text-[12px] font-pretendard text-right"
-                        style={
-                          isWarning
-                            ? { color: "#FF6B6B" }
-                            : diffDays === 0
-                            ? {
-                                background: PROGRESS_GRADIENT[theme],
-                                backgroundClip: "text",
-                                WebkitBackgroundClip: "text",
-                                color: "transparent",
-                              }
-                            : { color: isDarkBg ? "rgba(255,255,255,0.5)" : "#AAAAAA" }
-                        }
-                      >
-                        {nudge}
-                      </p>
-                    )}
-                  </div>
-                );
-              })()}
-
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => router.push(`/forests/${teamId}/participants`, { transitionTypes: ["nav-forward"] })}
-                  className="flex items-center gap-2 text-left"
-                >
-                  <span className={`text-[14px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>참여중</span>
-                  <div className="flex items-center">
-                    {participants.slice(0, 4).map((p, i) => {
-                      const { bg, fg } = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
-                      return (
-                        <div
-                          key={i}
-                          className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[12px] font-semibold font-pretendard"
-                          style={{ backgroundColor: bg, color: fg, marginLeft: i > 0 ? -8 : 0, zIndex: 4 - i }}
-                        >
-                          {p.nickname[0]}
-                        </div>
-                      );
-                    })}
-                    <div
-                      className="w-[30px] h-[30px] rounded-full bg-black flex items-center justify-center"
-                      style={{ marginLeft: participants.length > 0 ? -8 : 0 }}
-                      aria-hidden="true"
-                    >
-                      <Plus size={14} className="text-white" />
-                    </div>
-                  </div>
-                </button>
-                <button
-                  onClick={() => router.push("/reading", { transitionTypes: ["nav-forward"] })}
-                  className="w-[76px] h-[34px] rounded-[20px] py-2 px-[14px] flex items-center justify-center text-white font-pretendard"
-                  style={{ backgroundColor: currentTheme.color, fontWeight: 400, fontSize: 14, lineHeight: "150%", letterSpacing: "-0.025em" }}
-                >
-                  인증하기
-                </button>
-              </div>
-            </div>
-          </div>
+          <ForestStatsCard
+            theme={theme}
+            statPhrase={currentTheme.statPhrase}
+            treeCount={stats.trees}
+            score={stats.score}
+            participants={participants}
+            progress={{ totalChapters, diffDays: diffDaysForTagline }}
+            teamId={teamId}
+          />
         </div>
 
-        {/* 다른 숲 */}
-        <div className="px-6 pt-2" style={{ paddingBottom: "max(15px, env(safe-area-inset-bottom))" }}>
-          <button
-            onClick={() => router.push("/forests", { transitionTypes: ["nav-forward"] })}
-            className="w-full h-[48px] rounded-[8px] text-[16px] font-pretendard text-white"
-            style={{ backgroundColor: currentTheme.color }}
-          >
-            {currentTheme.forumsLabel}
-          </button>
-        </div>
+        <ForumsCta theme={theme} />
       </div>
 
       {/* Popup_info */}

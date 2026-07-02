@@ -1,11 +1,17 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { THEMES } from "@/constants/themes";
 import type { ThemeKey } from "@/constants/themes";
-import { getItemDisplaySize } from "@/constants/itemSizes";
-import ForestDetailStats from "./ForestDetailStats";
+import ForestBackground from "@/components/forest/ForestBackground";
+import ForestStatsCard from "@/components/forest/ForestStatsCard";
+import ForumsCta from "@/components/forest/ForumsCta";
+
+const SUBJECT_PARTICLE: Record<ThemeKey, string> = {
+  forest: "은",
+  night: "은",
+  ocean: "는",
+};
 
 export default async function ForestDetailPage({
   params,
@@ -42,33 +48,11 @@ export default async function ForestDetailPage({
   const plantedTrees = (treesRes.data ?? []) as { species: string; x: number; y: number }[];
   const treeCount = plantedTrees.length;
 
-  const currentTheme = THEMES[theme];
-  const isDarkBg = theme !== "forest";
+  const particle = SUBJECT_PARTICLE[theme];
 
   return (
     <div className="relative min-h-svh overflow-hidden">
-      {/* 전체화면 배경 */}
-      <div className="absolute inset-0">
-        <img src={`/assets/${theme}/bg.png`} alt="" className="w-full h-full object-cover" />
-      </div>
-
-      {/* 배치된 아이템 레이어 */}
-      <div className="absolute inset-0 z-[1] pointer-events-none">
-        {plantedTrees.map((tree, i) => {
-          const num = Number(tree.species);
-          if (isNaN(num) || num <= 0) return null;
-          const size = getItemDisplaySize(theme, num);
-          return (
-            <img
-              key={i}
-              src={`/assets/${theme}/${num}.png`}
-              alt=""
-              className="absolute object-contain"
-              style={{ width: size, height: size, left: `${tree.x}%`, top: `${tree.y}%`, transform: "translate(-50%, -90%)" }}
-            />
-          );
-        })}
-      </div>
+      <ForestBackground theme={theme} plantedTrees={plantedTrees} />
 
       {/* 콘텐츠 */}
       <div className="relative z-10 flex flex-col min-h-svh">
@@ -76,27 +60,17 @@ export default async function ForestDetailPage({
 
         {/* 숲 인터랙션 영역 */}
         <div className="flex-1 relative">
-          <ForestDetailStats
+          <ForestStatsCard
             theme={theme}
-            teamId={team.id}
-            teamName={team.name}
+            statPhrase={`현재 ${team.name}의 ${THEMES[theme].label}${particle}?`}
             treeCount={treeCount}
             score={score}
             participants={participants}
+            teamId={team.id}
           />
         </div>
 
-        {/* 다른 숲 구경하러 가기 */}
-        <div className="px-6 pb-safe pt-3">
-          <Link
-            href="/forests"
-            transitionTypes={["nav-back"]}
-            className="press-fx w-full h-[48px] rounded-[8px] text-[16px] font-pretendard flex items-center justify-center text-white"
-            style={{ backgroundColor: currentTheme.color }}
-          >
-            {currentTheme.forumsLabel}
-          </Link>
-        </div>
+        <ForumsCta theme={theme} className="px-6 pt-3" />
       </div>
     </div>
   );

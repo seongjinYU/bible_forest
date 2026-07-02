@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { X } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { THEMES } from "@/constants/themes";
@@ -37,48 +38,28 @@ export default async function StoragePage() {
 
   return (
     <div className="h-full bg-white flex flex-col">
-      <div className="h-11" />
-
       {/* AppBar */}
-      <div className="h-[60px] flex items-center px-4 shrink-0">
+      <div className="flex items-start px-4 pt-[22px] shrink-0 relative" style={{ paddingTop: "max(22px, env(safe-area-inset-top))" }}>
         <h1 className="flex-1 text-center text-[17px] font-semibold font-pretendard text-[#222222]">
           내 보관함
         </h1>
+        <Link
+          href="/"
+          transitionTypes={["nav-back"]}
+          className="absolute right-4 w-[24px] h-[24px] flex items-center justify-center"
+          style={{ top: "max(18px, env(safe-area-inset-top))" }}
+          aria-label="닫기"
+        >
+          <X size={24} className="text-[#222222]" />
+        </Link>
       </div>
 
       {trees.length === 0 ? (
-        <>
-          <div className="flex-1 flex flex-col items-center justify-center px-8">
-            <div className="w-[72px] h-[72px] rounded-full bg-[#F3F3F3] flex items-center justify-center mb-4">
-              <span className="text-[36px]">🌱</span>
-            </div>
-            <p className="text-[17px] font-semibold font-pretendard text-[#222222]">
-              아직 획득한 아이템이 없어요
-            </p>
-            <p className="text-[14px] font-pretendard text-[#999999] text-center leading-relaxed mt-2 whitespace-pre-line">
-              {"성경을 읽고 인증해보세요!"}
-            </p>
-            <p className="text-[13px] font-pretendard text-[#BBBBBB] text-center mt-1.5">
-              10장 읽을 때마다 아이템 1개 획득
-            </p>
-          </div>
-          <div className="px-5 pb-safe pt-3 shrink-0 flex flex-col gap-2">
-            <Link
-              href="/reading"
-              transitionTypes={["nav-forward"]}
-              className="press-fx w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[17px] font-medium font-noto flex items-center justify-center"
-            >
-              인증하기
-            </Link>
-            <Link
-              href="/"
-              transitionTypes={["nav-back"]}
-              className="press-fx w-full h-[54px] rounded-[8px] bg-[#F5F5F5] text-[#666666] text-[17px] font-medium font-noto flex items-center justify-center"
-            >
-              이전
-            </Link>
-          </div>
-        </>
+        <div className="flex-1 flex flex-col items-center justify-center px-8">
+          <p className="text-[15px] font-pretendard text-[#999999] text-center leading-relaxed whitespace-pre-line">
+            {"아직 획득한 아이템이 없어요!\n성경 읽고 인증해서 나무를 획득해보세요!"}
+          </p>
+        </div>
       ) : (
         <>
           <div className="flex-1 overflow-y-auto">
@@ -152,16 +133,6 @@ export default async function StoragePage() {
                 • 아이템을 배치하지 않으면 팀 점수에 집계되지 않습니다.
               </p>
             </div>
-          </div>
-
-          <div className="px-5 pb-safe pt-3 shrink-0">
-            <Link
-              href="/"
-              transitionTypes={["nav-back"]}
-              className="press-fx w-full h-[54px] rounded-[8px] bg-[#F5F5F5] text-[#666666] text-[17px] font-medium font-noto flex items-center justify-center"
-            >
-              이전
-            </Link>
           </div>
         </>
       )}

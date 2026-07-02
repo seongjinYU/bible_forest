@@ -2,14 +2,15 @@
 
 import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye } from "lucide-react";
+import { Eye, Download, AlertCircle, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/context/ThemeContext";
 import { THEMES } from "@/constants/themes";
 import { ELEMENT_NAMES } from "@/constants/elements";
 import { getItemDisplaySize } from "@/constants/itemSizes";
-import { AVATAR_PALETTE } from "@/constants/avatars";
+import { BGM_TITLE } from "@/context/BgmContext";
 import { isSessionExpired } from "@/lib/clientAuth";
+import ForestStatsCard from "@/components/forest/ForestStatsCard";
 
 interface PlantedTree {
   species: string;
@@ -74,9 +75,7 @@ export default function PlaceTreeContent({
   const textSecondary = isDarkBg ? "text-white/70" : "text-[#999999]";
   const textMuted = isDarkBg ? "text-white/80" : "text-[#555555]";
   const currentTheme = THEMES[theme];
-  const glassCard = isDarkBg
-    ? "bg-[#FFFFFF1A] backdrop-blur-[1px] border border-white/10"
-    : "bg-[#FFFFFF1A] backdrop-blur-[1px] border border-white/40";
+  const bgmTitle = BGM_TITLE[theme];
 
   const diffDaysForTagline = lastReadAt
     ? Math.floor((Date.now() - new Date(lastReadAt).getTime()) / 86400000)
@@ -192,20 +191,41 @@ export default function PlaceTreeContent({
             className="absolute inset-0 flex flex-col min-h-svh pointer-events-none"
             style={{ paddingTop: "env(safe-area-inset-top)" }}
           >
-            {/* AppBar */}
-            <div className="px-4 pt-2">
-              <button
-                onClick={() => setPreviewMode(false)}
-                className="pointer-events-auto w-full h-[44px] rounded-[8px] bg-black text-white text-[14px] font-medium font-pretendard"
-              >
-                미리보기 종료
-              </button>
+            {/* AppBar — 홈 화면과 동일한 장식, 클릭은 동작하지 않음 */}
+            <div className="h-[44px] flex items-end pb-1 justify-between px-6">
+              {bgmTitle ? (
+                <div
+                  className={`min-w-[105px] h-[30px] rounded-[30px] border flex items-center gap-1 text-[12px] font-pretendard whitespace-nowrap ${
+                    isDarkBg ? "border-white text-white" : "border-[#31C678] text-[#31C678]"
+                  }`}
+                  style={{
+                    backgroundColor: isDarkBg ? "#FFFFFF1A" : "#31C6781A",
+                    paddingTop: 6,
+                    paddingRight: 10,
+                    paddingBottom: 6,
+                    paddingLeft: 16,
+                  }}
+                >
+                  <span>{bgmTitle}</span>
+                  <Play size={13} fill="currentColor" />
+                </div>
+              ) : (
+                <div className="w-10 h-10" />
+              )}
+              <div className="flex items-center gap-2">
+                <div className="w-[26px] h-[26px] flex items-center justify-center">
+                  <Download size={22} className={textPrimary} />
+                </div>
+                <div className="w-[26px] h-[26px] flex items-center justify-center">
+                  <AlertCircle size={22} className={textPrimary} />
+                </div>
+              </div>
             </div>
 
             {/* 유저 정보 */}
-            <div className="mx-4 mt-1 px-4 py-3 flex flex-col gap-3">
-              <div className="flex items-start justify-between">
-                <div className="flex flex-col gap-1">
+            <div className="mt-1 px-6 py-3 flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-baseline justify-between">
                   <div className="flex items-baseline gap-1.5">
                     <span className={cn("text-[24px] font-bold leading-none font-pretendard", textPrimary)}>
                       {previewName}
@@ -214,135 +234,70 @@ export default function PlaceTreeContent({
                       {previewTeam}
                     </span>
                   </div>
-                  <p className={cn("text-[16px] font-pretendard", textPrimary)}>
-                    {tagline}
-                  </p>
+                  <div
+                    style={{ position: "relative", fontWeight: 400, fontSize: 14, lineHeight: "150%", letterSpacing: "-0.025em" }}
+                    className={cn(
+                      "shrink-0 w-[79px] h-[34px] py-2 px-[14px] rounded-[20px] border flex items-center justify-center whitespace-nowrap font-pretendard",
+                      isDarkBg ? "border-white text-white" : "border-[#222222] text-[#222222]",
+                    )}
+                  >
+                    내 보관함
+                    {storageCount > 0 && (
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: -7,
+                          right: -7,
+                          minWidth: 20,
+                          height: 20,
+                          padding: "0 5px",
+                          borderRadius: 9999,
+                          backgroundColor: currentTheme.color,
+                          color: "#fff",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          lineHeight: 1,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                        }}
+                      >
+                        {storageCount > 99 ? "99+" : storageCount}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div
-                  style={{ position: "relative" }}
-                  className={cn(
-                    "mt-2 shrink-0 h-[34px] px-[14px] rounded-[20px] border text-[14px] font-pretendard flex items-center",
-                    isDarkBg ? "border-white text-white" : "border-[#222222] text-[#222222]",
-                  )}
+                <p
+                  className={cn("font-pretendard", textPrimary)}
+                  style={{ fontWeight: 400, fontSize: 15, lineHeight: "150%", letterSpacing: "-0.025em" }}
                 >
-                  내 보관함
-                  {storageCount > 0 && (
-                    <span
-                      style={{
-                        position: "absolute",
-                        top: -7,
-                        right: -7,
-                        minWidth: 20,
-                        height: 20,
-                        padding: "0 5px",
-                        borderRadius: 9999,
-                        backgroundColor: currentTheme.color,
-                        color: "#fff",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        lineHeight: 1,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                      }}
-                    >
-                      {storageCount > 99 ? "99+" : storageCount}
-                    </span>
-                  )}
-                </div>
+                  {tagline}
+                </p>
               </div>
             </div>
 
             {/* 숲 인터랙션 영역 */}
             <div className="flex-1 relative">
-              {/* 통계 오버레이 */}
-              <div className="absolute bottom-0 left-0 right-0 px-4 pb-3">
-                <div className={cn("rounded-[20px] px-5 py-4", glassCard)}>
-                  <p className={cn("text-[15px] font-pretendard mb-0.5", isDarkBg ? "text-white/80" : "text-[#555555]")}>
-                    {currentTheme.statPhrase}
-                  </p>
-                  <div className="flex items-center gap-[3px] mb-3">
-                    <span className={cn("text-[24px] font-semibold font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>
-                      {stats.trees}
-                    </span>
-                    <span className={cn("text-[24px] font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>{currentTheme.unit}</span>
-                    <div className={cn("w-1 h-1 rounded-full mx-[5px]", isDarkBg ? "bg-white/60" : "bg-[#2E9200]")} />
-                    <span className={cn("text-[24px] font-semibold font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>
-                      {stats.score}
-                    </span>
-                    <span className={cn("text-[24px] font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>점</span>
-                  </div>
-
-                  {/* 진행률 바 */}
-                  {(() => {
-                    const done = totalChapters % 10;
-                    const progressPct = completed260 ? 100 : done / 10 * 100;
-                    const nudge = diffDaysForTagline === null ? null : diffDaysForTagline === 0 ? "오늘 인증했어요" : diffDaysForTagline === 1 ? "어제 마지막으로 인증했어요" : `${diffDaysForTagline}일째 인증을 안 했어요`;
-                    const isWarning = diffDaysForTagline !== null && diffDaysForTagline >= 2;
-                    return (
-                      <div className="flex flex-col gap-1 mb-3">
-                        <div className="flex items-center justify-between">
-                          <span className={cn("text-[13px] font-pretendard", isDarkBg ? "text-white/70" : "text-[#888888]")}>
-                            {completed260 ? "신약일독 완료" : "다음 아이템 획득까지"}
-                          </span>
-                          <span className={cn("text-[13px] font-semibold font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>
-                            {completed260 ? "260/260장" : `${done}/10장 남았어요!`}
-                          </span>
-                        </div>
-                        <div className={cn("h-1.5 rounded-full", isDarkBg ? "bg-white/20" : "bg-black/10")}>
-                          <div className="h-full rounded-full" style={{ width: `${progressPct}%`, backgroundColor: currentTheme.color }} />
-                        </div>
-                        {nudge && (
-                          <p
-                            className="text-[12px] font-pretendard text-right"
-                            style={{ color: isWarning ? "#FF6B6B" : diffDaysForTagline === 0 ? currentTheme.color : isDarkBg ? "rgba(255,255,255,0.5)" : "#AAAAAA" }}
-                          >
-                            {nudge}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })()}
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className={cn("text-[15px] font-pretendard", isDarkBg ? "text-white/80" : "text-[#555555]")}>참여중</span>
-                      <div className="flex items-center">
-                        {participants.slice(0, 3).map((p, i) => {
-                          const { bg, fg } = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
-                          return (
-                            <div
-                              key={i}
-                              className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[12px] font-semibold font-pretendard border-[2px] border-white"
-                              style={{ backgroundColor: bg, color: fg, marginLeft: i > 0 ? -8 : 0, zIndex: 3 - i }}
-                            >
-                              {p.nickname[0]}
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <span className={cn("text-[22px] font-pretendard", isDarkBg ? "text-white" : "text-[#222222]")}>›</span>
-                    </div>
-                    <div
-                      className="h-[40px] px-5 rounded-full text-white text-[15px] font-semibold font-pretendard flex items-center"
-                      style={{ backgroundColor: currentTheme.color }}
-                    >
-                      인증하기
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <ForestStatsCard
+                theme={theme}
+                statPhrase={currentTheme.statPhrase}
+                treeCount={stats.trees}
+                score={stats.score}
+                participants={participants}
+                progress={{ totalChapters, diffDays: diffDaysForTagline }}
+                interactive={false}
+              />
             </div>
 
-            {/* 다른 숲 */}
-            <div className="px-6 pb-safe pt-3">
-              <div
-                className="w-full h-[48px] rounded-[8px] flex items-center justify-center text-[16px] font-pretendard text-white"
-                style={{ backgroundColor: currentTheme.color }}
+            {/* "다른 팀 구경하러 가기" 자리를 실제 클릭 가능한 미리보기 종료 버튼으로 재사용 */}
+            <div className="px-6 pt-2 pointer-events-auto" style={{ paddingBottom: "max(15px, env(safe-area-inset-bottom))" }}>
+              <button
+                onClick={() => setPreviewMode(false)}
+                className="w-full h-[48px] rounded-[8px] bg-white text-[#222222] text-[16px] font-pretendard flex items-center justify-center"
               >
-                {currentTheme.forumsLabel}
-              </div>
+                미리보기 종료
+              </button>
             </div>
           </div>
 
