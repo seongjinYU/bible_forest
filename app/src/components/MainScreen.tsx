@@ -2,13 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Download, AlertCircle, Pencil, Play, Pause } from "lucide-react";
+import { Download, AlertCircle, Play, Pause, Plus } from "lucide-react";
 import { THEMES, type ThemeKey } from "@/constants/themes";
 import { useTheme } from "@/context/ThemeContext";
 import { BGM_TITLE, useBgm } from "@/context/BgmContext";
 import { getItemDisplaySize } from "@/constants/itemSizes";
 import { AVATAR_PALETTE } from "@/constants/avatars";
-import { ONBOARDING_ICON } from "@/constants/onboarding";
+import { ONBOARDING_ICON, ONBOARDING_HINT_TEXT } from "@/constants/onboarding";
 import { isSessionExpired } from "@/lib/clientAuth";
 
 interface Stats {
@@ -227,9 +227,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
   const textPrimary = isDarkBg ? "text-white" : "text-[#222222]";
   const textSecondary = isDarkBg ? "text-white/70" : "text-[#999999]";
   const textMuted = isDarkBg ? "text-white/80" : "text-[#555555]";
-  const glassCard = isDarkBg
-    ? "bg-[#FFFFFF1A] backdrop-blur-[1px] border border-white/10"
-    : "bg-[#FFFFFF1A] backdrop-blur-[1px] border border-white/40";
+  const glassCard = "bg-[#FFFFFF1A] backdrop-blur-[1px] border-[0.5px] border-white";
 
 
   return (
@@ -285,13 +283,20 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
       {/* 콘텐츠 레이어 */}
       <div className="relative z-10 flex flex-col h-svh" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         {/* AppBar */}
-        <div className="h-[44px] flex items-end pb-1 justify-between px-4">
+        <div className="h-[44px] flex items-end pb-1 justify-between px-6">
           {bgmTitle ? (
             <button
               onClick={toggleBgm}
-              className={`h-[30px] px-3 rounded-full border flex items-center gap-1.5 text-[12px] font-pretendard ${
-                isDarkBg ? "border-white/70 text-white" : "border-[#222222]/60 text-[#222222]"
+              className={`min-w-[105px] h-[30px] rounded-[30px] border flex items-center gap-1 text-[12px] font-pretendard whitespace-nowrap ${
+                isDarkBg ? "border-white text-white" : "border-[#31C678] text-[#222222]"
               }`}
+              style={{
+                backgroundColor: isDarkBg ? "#FFFFFF1A" : "#31C6781A",
+                paddingTop: 6,
+                paddingRight: 10,
+                paddingBottom: 6,
+                paddingLeft: 16,
+              }}
               aria-label={`${bgmTitle} ${bgmPlaying ? "멈춤" : "재생"}`}
             >
               {bgmPlaying ? <Pause size={13} /> : <Play size={13} />}
@@ -319,64 +324,70 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
         </div>
 
         {/* 유저 정보 */}
-        <div className="mx-4 mt-1 px-4 py-3 flex flex-col gap-3">
-          <div className="flex items-start justify-between">
-            <div className="flex flex-col gap-1">
+        <div className="mt-1 px-6 py-3 flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-baseline justify-between">
               <div className="flex items-baseline gap-1.5">
                 <span className={`text-[24px] font-bold leading-none font-pretendard ${textPrimary}`}>
                   {currentName}
                 </span>
-                <button
-                  onClick={() => { setEditValue(currentName); setEditError(""); setEditOpen(true); }}
-                  className="ml-0.5 self-center"
-                  aria-label="닉네임 수정"
-                >
-                  <Pencil size={15} className={textSecondary} />
-                </button>
                 <span className={`text-[16px] font-pretendard ${textSecondary}`}>
                   {team}
                 </span>
               </div>
-              <p className={`text-[16px] font-pretendard ${textPrimary}`}>
-                {tagline}
-              </p>
-            </div>
-            <button
-              onClick={() => router.push("/storage", { transitionTypes: ["nav-forward"] })}
-              style={{ position: "relative" }}
-              className={`mt-2 shrink-0 h-[34px] px-[14px] rounded-[20px] border text-[14px] font-pretendard ${
-                isDarkBg ? "border-white text-white" : "border-[#222222] text-[#222222]"
-              }`}
-            >
-              내 보관함
-              {storageCount > 0 && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: -7,
-                    right: -7,
-                    minWidth: 20,
-                    height: 20,
-                    padding: "0 5px",
-                    borderRadius: 9999,
-                    backgroundColor: currentTheme.color,
-                    color: "#fff",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    lineHeight: 1,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                  }}
-                  aria-label={`보관중 ${storageCount}개`}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => router.push("/storage", { transitionTypes: ["nav-forward"] })}
+                  style={{ position: "relative", fontWeight: 400, fontSize: 14, lineHeight: "150%", letterSpacing: "-0.025em" }}
+                  className={`shrink-0 w-[79px] h-[34px] py-2 px-[14px] rounded-[20px] border flex items-center justify-center whitespace-nowrap font-pretendard ${
+                    isDarkBg ? "border-white text-white" : "border-[#222222] text-[#222222]"
+                  }`}
                 >
-                  {storageCount > 99 ? "99+" : storageCount}
-                </span>
-              )}
-            </button>
+                  내 보관함
+                  {storageCount > 0 && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: -7,
+                        right: -7,
+                        minWidth: 20,
+                        height: 20,
+                        padding: "0 5px",
+                        borderRadius: 9999,
+                        backgroundColor: currentTheme.color,
+                        color: "#fff",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        lineHeight: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                      }}
+                      aria-label={`보관중 ${storageCount}개`}
+                    >
+                      {storageCount > 99 ? "99+" : storageCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => { setEditValue(currentName); setEditError(""); setEditOpen(true); }}
+                  style={{ fontWeight: 400, fontSize: 14, lineHeight: "150%", letterSpacing: "-0.025em" }}
+                  className={`shrink-0 w-[82px] h-[34px] py-2 px-[14px] rounded-[20px] border flex items-center justify-center whitespace-nowrap font-pretendard ${
+                    isDarkBg ? "border-white text-white" : "border-[#222222] text-[#222222]"
+                  }`}
+                >
+                  정보수정
+                </button>
+              </div>
+            </div>
+            <p
+              className={`font-pretendard ${textPrimary}`}
+              style={{ fontWeight: 400, fontSize: 15, lineHeight: "150%", letterSpacing: "-0.025em" }}
+            >
+              {tagline}
+            </p>
           </div>
-
         </div>
 
         {/* 숲 인터랙션 영역 */}
@@ -385,33 +396,36 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
           {plantedTrees.length === 0 && (
             <div className="absolute top-1/3 left-0 right-0 flex flex-col items-center -translate-y-1/2 pointer-events-none">
               <div className="animate-bounce-ball flex flex-col items-center">
-                <div className="px-5 py-3 rounded-full bg-black/70 backdrop-blur-sm flex items-center gap-2">
+                <div className="w-[200px] h-[45px] rounded-full bg-black backdrop-blur-sm flex items-center justify-center gap-2">
                   <span className="text-[16px]">{ONBOARDING_ICON[theme]}</span>
-                  <p className="text-[15px] font-semibold font-pretendard text-white whitespace-nowrap">
-                    성경을 읽고 인증해보세요!
+                  <p
+                    className="font-bold font-pretendard text-white text-center whitespace-nowrap"
+                    style={{ fontSize: 13, lineHeight: "150%", letterSpacing: "-0.025em" }}
+                  >
+                    {ONBOARDING_HINT_TEXT[theme]}
                   </p>
                 </div>
-                <div className="-mt-px w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[8px] border-t-black/70" />
+                <div className="-mt-px w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[8px] border-t-black" />
               </div>
             </div>
           )}
 
           {/* 통계 오버레이 */}
-          <div className="absolute bottom-0 left-0 right-0 px-4 pb-3">
-            <div className={`rounded-[20px] px-5 py-4 ${glassCard}`}>
-              <p className={`text-[15px] font-pretendard mb-0.5 ${isDarkBg ? "text-white/80" : "text-[#555555]"}`}>
+          <div className="absolute bottom-0 left-0 right-0 px-6 pb-2">
+            <div className={`rounded-[8px] px-5 py-4 ${glassCard}`}>
+              <p className={`text-[15px] font-pretendard mb-0.5 ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
                 {currentTheme.statPhrase}
               </p>
               <div className="flex items-center gap-[3px] mb-3">
-                <span className={`text-[24px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
+                <span className={`text-[18px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
                   {stats.trees}
                 </span>
-                <span className={`text-[24px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>{currentTheme.unit}</span>
+                <span className={`text-[18px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>{currentTheme.unit}</span>
                 <div className={`w-1 h-1 rounded-full mx-[5px] ${isDarkBg ? "bg-white/60" : "bg-[#2E9200]"}`} />
-                <span className={`text-[24px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
+                <span className={`text-[18px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
                   {stats.score}
                 </span>
-                <span className={`text-[24px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>점</span>
+                <span className={`text-[18px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>점</span>
               </div>
 
               {/* 진행률 바 */}
@@ -424,22 +438,22 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
                 const isWarning = diffDays !== null && diffDays >= 2;
                 return (
                   <div className="flex flex-col gap-1 mb-3">
-                    <div className="flex items-center justify-between">
-                      <span className={`text-[13px] font-pretendard ${isDarkBg ? "text-white/70" : "text-[#888888]"}`}>
-                        {completed ? "신약일독 완료" : "다음 아이템 획득까지"}
+                    <span className={`text-[14px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
+                      {completed ? "신약일독 완료" : "다음 아이템 획득까지"}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 rounded-full bg-white/60">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${progressPct}%`,
+                            background: PROGRESS_GRADIENT[theme],
+                          }}
+                        />
+                      </div>
+                      <span className={`text-[13px] font-semibold font-pretendard shrink-0 ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
+                        {completed ? "260/260" : `${done}/10`}
                       </span>
-                      <span className={`text-[13px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
-                        {completed ? "260/260장" : `${done}/10장 남았어요!`}
-                      </span>
-                    </div>
-                    <div className={`h-1.5 rounded-full ${isDarkBg ? "bg-white/20" : "bg-black/10"}`}>
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${progressPct}%`,
-                          background: PROGRESS_GRADIENT[theme],
-                        }}
-                      />
                     </div>
                     {nudge && (
                       <p
@@ -469,27 +483,33 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
                   onClick={() => router.push(`/forests/${teamId}/participants`, { transitionTypes: ["nav-forward"] })}
                   className="flex items-center gap-2 text-left"
                 >
-                  <span className={`text-[15px] font-pretendard ${isDarkBg ? "text-white/80" : "text-[#555555]"}`}>참여중</span>
+                  <span className={`text-[14px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>참여중</span>
                   <div className="flex items-center">
-                    {participants.slice(0, 3).map((p, i) => {
+                    {participants.slice(0, 4).map((p, i) => {
                       const { bg, fg } = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
                       return (
                         <div
                           key={i}
-                          className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[12px] font-semibold font-pretendard border-[2px] border-white"
-                          style={{ backgroundColor: bg, color: fg, marginLeft: i > 0 ? -8 : 0, zIndex: 3 - i }}
+                          className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[12px] font-semibold font-pretendard"
+                          style={{ backgroundColor: bg, color: fg, marginLeft: i > 0 ? -8 : 0, zIndex: 4 - i }}
                         >
                           {p.nickname[0]}
                         </div>
                       );
                     })}
+                    <div
+                      className="w-[30px] h-[30px] rounded-full bg-black flex items-center justify-center"
+                      style={{ marginLeft: participants.length > 0 ? -8 : 0 }}
+                      aria-hidden="true"
+                    >
+                      <Plus size={14} className="text-white" />
+                    </div>
                   </div>
-                  <span className={`text-[22px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>›</span>
                 </button>
                 <button
                   onClick={() => router.push("/reading", { transitionTypes: ["nav-forward"] })}
-                  className="h-[40px] px-5 rounded-full text-white text-[15px] font-semibold font-pretendard"
-                  style={{ backgroundColor: currentTheme.color }}
+                  className="w-[76px] h-[34px] rounded-[20px] py-2 px-[14px] flex items-center justify-center text-white font-pretendard"
+                  style={{ backgroundColor: currentTheme.color, fontWeight: 400, fontSize: 14, lineHeight: "150%", letterSpacing: "-0.025em" }}
                 >
                   인증하기
                 </button>
@@ -499,7 +519,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
         </div>
 
         {/* 다른 숲 */}
-        <div className="px-6 pb-safe pt-3">
+        <div className="px-6 pt-2" style={{ paddingBottom: "max(15px, env(safe-area-inset-bottom))" }}>
           <button
             onClick={() => router.push("/forests", { transitionTypes: ["nav-forward"] })}
             className="w-full h-[48px] rounded-[8px] text-[16px] font-pretendard text-white"
