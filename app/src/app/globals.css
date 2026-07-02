@@ -209,29 +209,11 @@
 }
 
 /* ───────────────────────────────────────────────
-   버튼 눌림(press) 피드백 — 누르는 동안 축소 + 흐려져 탭 반응을 전달.
-   @layer 밖(unlayered)에 둬서 Tailwind 유틸리티(@layer utilities)보다
-   확실히 우선 적용된다. 강도 조절: --press-scale / --press-opacity.
+   모바일 기본 탭 하이라이트(회색 플래시) 제거.
    ─────────────────────────────────────────────── */
-:root {
-  --press-scale: 0.93;
-  --press-opacity: 0.8;
-}
 button,
 .press-fx {
-  transition: transform 0.12s ease, opacity 0.12s ease;
-  -webkit-tap-highlight-color: transparent; /* 모바일 기본 회색 하이라이트 제거 */
-}
-button:not(:disabled):active,
-.press-fx:active {
-  transform: scale(var(--press-scale));
-  opacity: var(--press-opacity);
-}
-
-/* register 페이지는 버튼 눌림 피드백 비활성화 */
-.no-press-fx button:not(:disabled):active {
-  transform: none;
-  opacity: 1;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ───────────────────────────────────────────────

@@ -119,7 +119,7 @@ export default function RegisterPage() {
 
   if (step === 3) {
     return (
-      <div className="flex flex-col h-dvh bg-white no-press-fx">
+      <div className="flex flex-col h-dvh bg-white">
         <div className="h-11" />
         <div className="h-[62px]" />
         <div className="flex-1 flex flex-col justify-between px-4 pb-safe">
@@ -141,7 +141,7 @@ export default function RegisterPage() {
 
   if (step === 4) {
     return (
-      <div className="flex flex-col h-dvh bg-white no-press-fx">
+      <div className="flex flex-col h-dvh bg-white">
         <div className="h-11" />
         <div className="h-[62px]" />
         <div className="flex-1 flex flex-col justify-between px-4 pb-safe">
@@ -165,7 +165,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex flex-col h-dvh bg-white no-press-fx">
+    <div className="flex flex-col h-dvh bg-white">
       <div className="h-11" />
 
       {/* AppBar */}
