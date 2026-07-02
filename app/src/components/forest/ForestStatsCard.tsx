@@ -76,12 +76,12 @@ export default function ForestStatsCard({
           <span className={`text-[18px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
             {treeCount}
           </span>
-          <span className={`text-[18px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>{currentTheme.unit}</span>
+          <span className={`text-[15px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>{currentTheme.unit}</span>
           <div className={`w-1 h-1 rounded-full mx-[5px] ${isDarkBg ? "bg-white/60" : "bg-[#2E9200]"}`} />
           <span className={`text-[18px] font-semibold font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>
             {score}
           </span>
-          <span className={`text-[18px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>점</span>
+          <span className={`text-[15px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>점</span>
         </div>
 
         {progress && (

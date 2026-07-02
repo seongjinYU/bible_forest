@@ -288,7 +288,10 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
           <div className="flex flex-col gap-1">
             <div className="flex items-baseline justify-between">
               <div className="flex items-baseline gap-1.5">
-                <span className={`text-[24px] font-bold leading-none font-pretendard ${textPrimary}`}>
+                <span
+                  className={`font-pretendard ${textPrimary}`}
+                  style={{ fontWeight: 500, fontSize: 24, lineHeight: "150%", letterSpacing: "-0.025em" }}
+                >
                   {currentName}
                 </span>
                 <span className={`text-[16px] font-pretendard ${textSecondary}`}>
