@@ -16,7 +16,7 @@ export default function ParticipantAvatars({ participants }: { participants: Par
         return (
           <div
             key={i}
-            className="w-[24px] h-[24px] rounded-full flex items-center justify-center font-noto text-center"
+            className="w-[26px] h-[26px] rounded-full flex items-center justify-center font-noto text-center"
             style={{
               backgroundColor: bg,
               color: fg,
@@ -33,7 +33,7 @@ export default function ParticipantAvatars({ participants }: { participants: Par
         );
       })}
       <div
-        className="w-[24px] h-[24px] rounded-full bg-black flex items-center justify-center"
+        className="w-[26px] h-[26px] rounded-full bg-black flex items-center justify-center"
         style={{ marginLeft: participants.length > 0 ? -4 : 0, zIndex: shown.length + 1 }}
         aria-hidden="true"
       >

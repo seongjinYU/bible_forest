@@ -1,8 +1,8 @@
 export const AVATAR_PALETTE = [
-  { bg: "#B8E4DA", fg: "#0F6B55" },
-  { bg: "#F5C5A8", fg: "#B5451A" },
-  { bg: "#F5DDB8", fg: "#8B5A10" },
-  { bg: "#D4B8F5", fg: "#5A1A9B" },
-  { bg: "#B8D9F5", fg: "#1A3A8B" },
-  { bg: "#F5B8D4", fg: "#9B1A5A" },
+  { bg: "#FCEAF2", fg: "#F0378C" },
+  { bg: "#E8F7FC", fg: "#3FBEE8" },
+  { bg: "#FCF1E4", fg: "#F0A93E" },
+  { bg: "#EFF9E8", fg: "#6FBF3E" },
+  { bg: "#F1EAFC", fg: "#9B5CF0" },
+  { bg: "#E4F7F1", fg: "#2EBFA0" },
 ];
