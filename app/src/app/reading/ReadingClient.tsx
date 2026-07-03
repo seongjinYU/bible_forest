@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NT_BOOKS } from "@/constants/bible";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -248,18 +248,40 @@ export default function ReadingClient({
 
   return (
     <div className="flex flex-col h-dvh bg-white">
-      <div className="h-11" />
-
-      <div className="h-[54px] flex items-center justify-center relative px-4 shrink-0">
-        <span className="text-[17px] font-medium text-[#222222] font-noto">인증하기</span>
+      {/* AppBar */}
+      <div className="flex items-start px-4 pt-[22px] shrink-0 relative" style={{ paddingTop: "max(22px, env(safe-area-inset-top))" }}>
+        <h1 className="flex-1 text-center text-[17px] font-semibold font-pretendard text-[#222222]">
+          인증하기
+        </h1>
+        <button
+          onClick={() => router.push("/", { transitionTypes: ["nav-back"] })}
+          className="absolute right-4 w-[24px] h-[24px] flex items-center justify-center"
+          style={{ top: "max(18px, env(safe-area-inset-top))" }}
+          aria-label="닫기"
+        >
+          <X size={24} className="text-[#222222]" />
+        </button>
       </div>
 
       <div className="px-5 pt-3 pb-4 relative shrink-0 flex items-center justify-between">
         <button onClick={() => setDropdownOpen((v) => !v)} className="flex items-center gap-1.5">
-          <span className="text-[28px] font-bold text-[#222222] font-noto leading-tight">
+          <span
+            className="text-[#222222] font-noto"
+            style={{ fontWeight: 500, fontSize: 24, lineHeight: "150%", letterSpacing: "-0.025em" }}
+          >
             {selectedBook.name}
           </span>
-          <ChevronDown size={22} className="text-[#222222] mt-1 shrink-0" />
+          <span
+            className="shrink-0"
+            style={{
+              width: 0,
+              height: 0,
+              marginTop: 3,
+              borderLeft: "5px solid transparent",
+              borderRight: "5px solid transparent",
+              borderTop: "6px solid #222222",
+            }}
+          />
         </button>
 
         {(() => {
@@ -274,9 +296,21 @@ export default function ReadingClient({
                   return next;
                 });
               }}
-              className="text-[14px] font-pretendard text-[#0FC8B8]"
+              className="flex items-center gap-1.5 font-pretendard text-[#222222]"
             >
-              {allOn ? "전체 해제" : "전체 선택"}
+              <span
+                className={cn(
+                  "w-[24px] h-[24px] rounded-[4px] border flex items-center justify-center shrink-0",
+                  allOn ? "border-[#31C678] bg-[#31C678]" : "border-[#DDDDDD] bg-white",
+                )}
+              >
+                {allOn && <Check size={16} className="text-white" strokeWidth={3} />}
+              </span>
+              <span
+                style={{ fontWeight: 400, fontSize: 14, lineHeight: "120%", letterSpacing: "-0.025em", textAlign: "center" }}
+              >
+                전체선택
+              </span>
             </button>
           );
         })()}
@@ -311,16 +345,14 @@ export default function ReadingClient({
         )}
       </div>
 
-      {/* 선택 장 수 배지 */}
-      <div className="h-7 flex items-center justify-center shrink-0">
-        {effectiveDraft.size > 0 && (
-          <span
-            className="px-3 py-0.5 rounded-full text-[12px] font-semibold font-pretendard text-white"
-            style={{ background: GRADIENT }}
-          >
-            {effectiveDraft.size}장 선택됨
-          </span>
-        )}
+      {/* 선택 장 수 */}
+      <div className="px-5 pb-2 shrink-0">
+        <span
+          className="font-pretendard text-[#AAAAAA]"
+          style={{ fontWeight: 400, fontSize: 14, lineHeight: "150%", letterSpacing: "-0.025em" }}
+        >
+          {String(effectiveDraft.size).padStart(2, "0")}장 선택됨
+        </span>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5">
@@ -348,22 +380,31 @@ export default function ReadingClient({
                 if (pillNonFirsts.has(ch)) return null;
 
                 const pillGroup = pillGroupStarts.get(ch);
+                const chapterTextStyle: React.CSSProperties = {
+                  fontWeight: 400,
+                  fontSize: 14,
+                  lineHeight: "150%",
+                  letterSpacing: "-0.025em",
+                  textAlign: "center",
+                };
+
                 if (pillGroup) {
                   return (
                     <div
                       key={ch}
                       style={{ gridColumn: `span ${pillGroup.length}` }}
-                      className="h-12 flex items-center"
+                      className="h-14 flex items-center"
                     >
                       <div
                         style={{ background: GRADIENT }}
-                        className="flex-1 h-10 rounded-full flex items-center overflow-hidden"
+                        className="flex-1 h-12 rounded-full flex items-center overflow-hidden"
                       >
                         {pillGroup.map((c) => (
                           <span
                             key={c}
                             data-chapter={c}
-                            className="flex-1 h-full flex items-center justify-center text-[14px] font-medium font-pretendard text-white"
+                            className="flex-1 h-full flex items-center justify-center font-pretendard text-white"
+                            style={chapterTextStyle}
                           >
                             {c}
                           </span>
@@ -380,16 +421,16 @@ export default function ReadingClient({
                   ch <= Math.max(dragState.startCh, dragState.currentCh);
 
                 return (
-                  <div key={ch} data-chapter={ch} className="h-12 flex items-center">
+                  <div key={ch} data-chapter={ch} className="h-14 flex items-center">
                     <span
                       data-chapter={ch}
                       className={cn(
-                        "h-10 w-10 flex items-center justify-center text-[14px] font-medium font-pretendard rounded-full mx-auto transition-transform",
-                        !isOn && "border border-[#E0E0E0] bg-white text-[#AAAAAA]",
+                        "h-12 w-12 flex items-center justify-center font-pretendard rounded-full mx-auto transition-transform",
+                        !isOn && "border border-[#EEEEEE] bg-white text-[#999999]",
                         isOn && "text-white",
                         isDragTarget && "scale-110",
                       )}
-                      style={isOn ? { background: GRADIENT } : undefined}
+                      style={{ ...chapterTextStyle, ...(isOn ? { background: GRADIENT } : {}) }}
                     >
                       {ch}
                     </span>
@@ -407,17 +448,25 @@ export default function ReadingClient({
         </p>
       )}
 
-      <div className="px-5 pb-safe pt-3 flex gap-3 shrink-0">
+      <div className="px-6 pt-3 flex gap-3 shrink-0" style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom))" }}>
         <button
-          onClick={() => router.push("/", { transitionTypes: ["nav-back"] })}
-          className="w-[88px] h-[54px] rounded-[8px] bg-[#F5F5F5] text-[#666666] text-[17px] font-medium font-noto shrink-0"
+          onClick={() => {
+            setDraftByBook((prev) => {
+              const next = new Map(prev);
+              next.set(selectedBook.name, new Set());
+              return next;
+            });
+          }}
+          className="w-[88px] h-[54px] rounded-[8px] bg-[#F5F5F5] text-[#666666] font-noto text-center shrink-0"
+          style={{ fontWeight: 400, fontSize: 16, lineHeight: "150%", letterSpacing: "-0.025em" }}
         >
-          이전
+          초기화
         </button>
         <button
           onClick={handleComplete}
           disabled={!dirty || isSubmitting}
-          className="flex-1 h-[54px] rounded-[8px] bg-[#31C678] text-white text-[17px] font-medium font-noto transition-opacity disabled:opacity-40"
+          className="flex-1 h-[54px] rounded-[8px] bg-[#31C678] text-white font-noto text-center transition-opacity disabled:opacity-40"
+          style={{ fontWeight: 400, fontSize: 16, lineHeight: "150%", letterSpacing: "-0.025em" }}
         >
           {isSubmitting ? "저장 중..." : "완료"}
         </button>
