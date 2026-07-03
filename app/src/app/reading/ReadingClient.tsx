@@ -8,6 +8,8 @@ import { NT_BOOKS } from "@/constants/bible";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useTheme } from "@/context/ThemeContext";
 import { ELEMENT_NAMES } from "@/constants/elements";
+import { getSpeciesRank } from "@/constants/rankings";
+import RankBadge from "@/components/forest/RankBadge";
 import { isSessionExpired } from "@/lib/clientAuth";
 
 const COLS = 6;
@@ -496,6 +498,7 @@ export default function ReadingClient({
             const speciesNum = Number(currentSpecies);
             const isNumbered = !isNaN(speciesNum) && speciesNum > 0;
             const name = isNumbered ? (ELEMENT_NAMES[theme]?.[speciesNum] ?? "") : "";
+            const rank = isNumbered ? getSpeciesRank(theme, speciesNum) : null;
             const total = earnedItems.length;
             const isLast = earnedIndex === total - 1;
 
@@ -526,13 +529,20 @@ export default function ReadingClient({
                       [내 보관함]에서 확인하고 아이템을 심어보세요!
                     </p>
                   </div>
-                  <div className="w-[120px] h-[120px] rounded-full bg-[#F5F5F5] flex items-center justify-center">
-                    {isNumbered && (
-                      <img
-                        src={`/assets/${theme}/${speciesNum}.png`}
-                        alt={name}
-                        className="w-[80px] h-[80px] object-contain"
-                      />
+                  <div className="relative">
+                    <div className="w-[120px] h-[120px] rounded-full bg-[#F5F5F5] flex items-center justify-center">
+                      {isNumbered && (
+                        <img
+                          src={`/assets/${theme}/${speciesNum}.png`}
+                          alt={name}
+                          className="w-[80px] h-[80px] object-contain"
+                        />
+                      )}
+                    </div>
+                    {rank && (
+                      <div className="absolute bottom-1 right-1">
+                        <RankBadge rank={rank} variant="overlay" />
+                      </div>
                     )}
                   </div>
                   {name && (

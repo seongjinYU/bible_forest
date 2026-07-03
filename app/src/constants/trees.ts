@@ -1,4 +1,5 @@
 import type { ThemeKey } from "./themes";
+import { RANK_WEIGHT, getSpeciesByRank, type Rank } from "./rankings";
 
 export const SPECIAL_SPECIES = "special";
 
@@ -7,13 +8,18 @@ export const REWARD = {
   SPECIAL_TREE_POINTS: 0,
 } as const;
 
-const SPECIES_COUNT: Record<ThemeKey, number> = {
-  forest: 25,
-  night:  25,
-  ocean:  26,
-};
-
+// 등급(B/A/S)별 가중치로 먼저 등급을 뽑고, 그 등급 안에서 species를 균등하게 뽑는다.
 export function pickRandomSpecies(theme: ThemeKey): string {
-  const count = SPECIES_COUNT[theme];
-  return String(Math.floor(Math.random() * count) + 1);
+  const ranks = Object.keys(RANK_WEIGHT) as Rank[];
+  const totalWeight = ranks.reduce((sum, r) => sum + RANK_WEIGHT[r], 0);
+  let roll = Math.random() * totalWeight;
+  let chosenRank: Rank = ranks[ranks.length - 1];
+  for (const rank of ranks) {
+    if (roll < RANK_WEIGHT[rank]) { chosenRank = rank; break; }
+    roll -= RANK_WEIGHT[rank];
+  }
+
+  const pool = getSpeciesByRank(theme, chosenRank);
+  const species = pool[Math.floor(Math.random() * pool.length)];
+  return String(species);
 }

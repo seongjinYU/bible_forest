@@ -5,6 +5,8 @@ import { getSessionUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { THEMES } from "@/constants/themes";
 import { ELEMENT_NAMES } from "@/constants/elements";
+import { getSpeciesRank } from "@/constants/rankings";
+import RankBadge from "@/components/forest/RankBadge";
 import type { ThemeKey } from "@/constants/themes";
 
 export default async function StoragePage() {
@@ -73,6 +75,7 @@ export default async function StoragePage() {
                 const imgSrc = isNumbered
                   ? `/assets/${theme}/${speciesNum}.png`
                   : null;
+                const rank = isNumbered ? getSpeciesRank(theme, speciesNum) : null;
                 const d = new Date(tree.obtained_at);
                 const dateLabel = `${String(d.getFullYear()).slice(-2)}.${d.getMonth() + 1}.${d.getDate()}`;
 
@@ -82,13 +85,20 @@ export default async function StoragePage() {
                     className="flex items-center gap-4 py-4 border-b border-[#F0F0F0] last:border-0"
                   >
                     {/* 썸네일 */}
-                    <div className="w-[60px] h-[60px] rounded-full bg-[#F3F3F3] flex items-center justify-center shrink-0">
-                      {imgSrc && (
-                        <img
-                          src={imgSrc}
-                          alt={elementName}
-                          className="w-[40px] h-[40px] object-contain"
-                        />
+                    <div className="relative shrink-0">
+                      <div className="w-[60px] h-[60px] rounded-full bg-[#F3F3F3] flex items-center justify-center">
+                        {imgSrc && (
+                          <img
+                            src={imgSrc}
+                            alt={elementName}
+                            className="w-[40px] h-[40px] object-contain"
+                          />
+                        )}
+                      </div>
+                      {rank && (
+                        <div className="absolute -bottom-0.5 -right-0.5">
+                          <RankBadge rank={rank} variant="overlay" />
+                        </div>
                       )}
                     </div>
 
