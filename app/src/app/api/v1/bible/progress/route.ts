@@ -5,7 +5,6 @@
 // └─────────────────────────────────────────────────────────────────┘
 
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
 import { getSessionUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { NT_BOOKS, TOTAL_NT_CHAPTERS } from "@/constants/bible";
@@ -132,16 +131,15 @@ export async function PATCH(request: Request) {
   const rawTheme = (teamData as { theme?: string | null } | null)?.theme;
   const theme: ThemeKey = rawTheme && rawTheme in THEMES ? (rawTheme as ThemeKey) : "forest";
 
-  // 6) 권별 bulk replace: 각 권 기존 행 삭제 → 새 목록 일괄 insert
-  for (const bookName of bookMap.keys()) {
-    const { error: delErr } = await supabase
-      .from("bible_progress")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("book_name", bookName);
-    if (delErr) {
-      return NextResponse.json({ message: "처리 중 오류가 발생했습니다." }, { status: 500 });
-    }
+  // 6) 권별 bulk replace: 변경된 권 전체를 단일 DELETE → 일괄 INSERT
+  const bookNames = [...bookMap.keys()];
+  const { error: delErr } = await supabase
+    .from("bible_progress")
+    .delete()
+    .eq("user_id", user.id)
+    .in("book_name", bookNames);
+  if (delErr) {
+    return NextResponse.json({ message: "처리 중 오류가 발생했습니다." }, { status: 500 });
   }
   const insertRows: { user_id: string; book_name: string; chapter: number }[] = [];
   for (const [bookName, chs] of bookMap) {
@@ -241,10 +239,7 @@ export async function PATCH(request: Request) {
     special = false;
   }
 
-  // 10) 홈 캐시 무효화
-  revalidatePath("/");
-
-  // 11) 응답
+  // 10) 응답
   return NextResponse.json({
     books: [...bookMap].map(([book_name, chapters]) => ({ book_name, chapters })),
     total_chapters: total,
