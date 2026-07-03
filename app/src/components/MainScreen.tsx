@@ -12,6 +12,7 @@ import { isSessionExpired } from "@/lib/clientAuth";
 import ForestBackground, { type PlantedTree } from "@/components/forest/ForestBackground";
 import ForestStatsCard from "@/components/forest/ForestStatsCard";
 import ForumsCta from "@/components/forest/ForumsCta";
+import EarnedItemDialog from "@/components/forest/EarnedItemDialog";
 import type { Participant } from "@/components/forest/ParticipantAvatars";
 
 interface Stats {
@@ -61,6 +62,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
   const bgmTitle = BGM_TITLE[theme];
   const { playing: bgmPlaying, toggle: toggleBgm } = useBgm();
   const [toast, setToast] = useState<ToastState>(null);
+  const [earnedSpecies, setEarnedSpecies] = useState<string[]>([]);
   const screenRef = useRef<HTMLDivElement>(null);
   const downloadOverlayRef = useRef<HTMLDivElement>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,6 +82,44 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
     : currentTheme.tagline;
 
   useEffect(() => () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); }, []);
+
+  // 인증 화면에서 낙관적으로 먼저 이동해왔을 경우, PATCH 응답이 도착하면
+  // sessionStorage에 남겨두므로 여기서 짧게 폴링해 획득 팝업/에러 토스트를 띄운다.
+  useEffect(() => {
+    const POLL_MS = 300;
+    const MAX_WAIT_MS = 5000;
+    let elapsed = 0;
+    const interval = setInterval(() => {
+      elapsed += POLL_MS;
+      const earnedRaw = sessionStorage.getItem("newly_earned_species");
+      if (earnedRaw) {
+        sessionStorage.removeItem("newly_earned_species");
+        try {
+          const species = JSON.parse(earnedRaw) as string[];
+          if (species.length > 0) setEarnedSpecies(species);
+        } catch {
+          // 잘못된 값이면 무시
+        }
+        clearInterval(interval);
+        return;
+      }
+      const errorMsg = sessionStorage.getItem("reading_save_error");
+      if (errorMsg) {
+        sessionStorage.removeItem("reading_save_error");
+        showToast(errorMsg);
+        clearInterval(interval);
+        return;
+      }
+      if (sessionStorage.getItem("reading_saved")) {
+        sessionStorage.removeItem("reading_saved");
+        router.refresh();
+        clearInterval(interval);
+        return;
+      }
+      if (elapsed >= MAX_WAIT_MS) clearInterval(interval);
+    }, POLL_MS);
+    return () => clearInterval(interval);
+  }, []);
 
   function showToast(message: string, action?: { label: string; onClick: () => void }) {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -498,6 +538,14 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
             </div>
           </div>
         </div>
+      )}
+
+      {earnedSpecies.length > 0 && (
+        <EarnedItemDialog
+          theme={theme}
+          species={earnedSpecies}
+          onClose={() => { setEarnedSpecies([]); router.refresh(); }}
+        />
       )}
     </div>
   );

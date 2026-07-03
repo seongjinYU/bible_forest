@@ -113,19 +113,24 @@ export async function PATCH(request: Request) {
 
   const supabase = createSupabaseServerClient();
 
-  // 5) 챌린지 기간 검증 (C1)
+  // 5) 챌린지 기간 검증(C1) + 팀 테마 조회를 병렬로 — 서로 의존관계 없음
   const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const { data: challenge } = await supabase
-    .from("challenges")
-    .select("id")
-    .eq("is_active", true)
-    .lte("start_date", today)
-    .gte("end_date", today)
-    .limit(1)
-    .maybeSingle();
+  const [{ data: challenge }, { data: teamData }] = await Promise.all([
+    supabase
+      .from("challenges")
+      .select("id")
+      .eq("is_active", true)
+      .lte("start_date", today)
+      .gte("end_date", today)
+      .limit(1)
+      .maybeSingle(),
+    supabase.from("teams").select("theme").eq("id", user.team_id).single(),
+  ]);
   if (!challenge) {
     return NextResponse.json({ message: "챌린지 기간이 아닙니다." }, { status: 403 });
   }
+  const rawTheme = (teamData as { theme?: string | null } | null)?.theme;
+  const theme: ThemeKey = rawTheme && rawTheme in THEMES ? (rawTheme as ThemeKey) : "forest";
 
   // 6) 권별 bulk replace: 각 권 기존 행 삭제 → 새 목록 일괄 insert
   for (const bookName of bookMap.keys()) {
@@ -158,15 +163,6 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ message: "처리 중 오류가 발생했습니다." }, { status: 500 });
   }
   const total = count ?? 0;
-
-  // 팀 테마 (지급할 나무 종류 풀)
-  const { data: teamData } = await supabase
-    .from("teams")
-    .select("theme")
-    .eq("id", user.team_id)
-    .single();
-  const rawTheme = (teamData as { theme?: string | null } | null)?.theme;
-  const theme: ThemeKey = rawTheme && rawTheme in THEMES ? (rawTheme as ThemeKey) : "forest";
 
   let earned = user.trees_earned;
   let special = user.special_tree_earned;

@@ -6,10 +6,6 @@ import { ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NT_BOOKS } from "@/constants/bible";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { useTheme } from "@/context/ThemeContext";
-import { ELEMENT_NAMES } from "@/constants/elements";
-import { getSpeciesRank } from "@/constants/rankings";
-import RankBadge from "@/components/forest/RankBadge";
 import { isSessionExpired } from "@/lib/clientAuth";
 
 const COLS = 6;
@@ -79,10 +75,9 @@ export default function ReadingClient({
   initialProgress: { book_name: string; chapter: number }[];
 }) {
   const router = useRouter();
-  const theme = useTheme();
   const [selectedBook, setSelectedBook] = useState<BookType>(NT_BOOKS[0]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [allProgress, setAllProgress] = useState<Map<string, Set<number>>>(
+  const [allProgress] = useState<Map<string, Set<number>>>(
     () => buildProgressMap(initialProgress),
   );
   const [draftByBook, setDraftByBook] = useState<Map<string, Set<number>>>(() => {
@@ -95,8 +90,6 @@ export default function ReadingClient({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [earnedItems, setEarnedItems] = useState<string[]>([]);
-  const [earnedIndex, setEarnedIndex] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
 
   // 드래그 선택 상태
@@ -216,6 +209,12 @@ export default function ReadingClient({
       book_name: name,
       chapters: Array.from(draftByBook.get(name) ?? []).sort((a, b) => a - b),
     }));
+
+    // 낙관적 이동: 입력은 이미 클라이언트에서 검증된 상태이므로 응답을 기다리지 않고
+    // 바로 홈으로 이동한다. 실패해도 다음에 /reading 진입 시 서버가 실제 상태를 다시 내려주므로
+    // 여기서 되돌릴 필요는 없다 — 실패 메시지만 홈에 전달해 토스트로 알린다.
+    router.push("/", { transitionTypes: ["nav-back"] });
+
     const res = await fetch("/api/v1/bible/progress", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -224,23 +223,20 @@ export default function ReadingClient({
     setIsSubmitting(false);
     if (isSessionExpired(res)) return;
     if (!res.ok) {
+      // 이미 홈으로 이동한 뒤이므로, 되돌리지 않고 홈이 읽어 토스트로 알리도록 위임한다.
       const data = await res.json().catch(() => ({}));
-      setErrorMsg(data.message ?? "저장에 실패했습니다.");
+      sessionStorage.setItem("reading_save_error", data.message ?? "저장에 실패했습니다.");
       return;
     }
     const data = await res.json();
-    setAllProgress((prev) => {
-      const next = new Map(prev);
-      for (const name of changedBooks) {
-        next.set(name, new Set(draftByBook.get(name) ?? []));
-      }
-      return next;
-    });
     if (data.newly_earned?.length > 0) {
-      setEarnedItems(data.newly_earned.map((i: { species: string }) => i.species));
-      setEarnedIndex(0);
+      sessionStorage.setItem(
+        "newly_earned_species",
+        JSON.stringify(data.newly_earned.map((i: { species: string }) => i.species)),
+      );
     } else {
-      router.push("/", { transitionTypes: ["nav-back"] });
+      // 획득 아이템이 없어도 홈 통계(장수/진행률)는 최신화되어야 한다.
+      sessionStorage.setItem("reading_saved", "1");
     }
   }
 
@@ -486,77 +482,6 @@ export default function ReadingClient({
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={earnedItems.length > 0}
-        onOpenChange={(open) => {
-          if (!open) { setEarnedItems([]); router.push("/", { transitionTypes: ["nav-back"] }); }
-        }}
-      >
-        <DialogContent showCloseButton={false} className="p-0 gap-0 rounded-[12px]">
-          {(() => {
-            const currentSpecies = earnedItems[earnedIndex] ?? null;
-            const speciesNum = Number(currentSpecies);
-            const isNumbered = !isNaN(speciesNum) && speciesNum > 0;
-            const name = isNumbered ? (ELEMENT_NAMES[theme]?.[speciesNum] ?? "") : "";
-            const rank = isNumbered ? getSpeciesRank(theme, speciesNum) : null;
-            const total = earnedItems.length;
-            const isLast = earnedIndex === total - 1;
-
-            function closeEarned() { setEarnedItems([]); router.push("/", { transitionTypes: ["nav-back"] }); }
-            function nextEarned() {
-              if (!isLast) setEarnedIndex((i) => i + 1);
-              else closeEarned();
-            }
-
-            return (
-              <>
-                <div className="flex items-center justify-end px-4 pt-4">
-                  <button onClick={closeEarned} className="w-10 h-10 flex items-center justify-center">
-                    <X size={20} className="text-[#222222]" />
-                  </button>
-                </div>
-                <div className="px-5 pb-6 flex flex-col items-center gap-5">
-                  <div className="flex flex-col items-center gap-1">
-                    <DialogTitle className="text-[20px] font-bold text-[#222222] text-center font-noto leading-snug">
-                      와! 새로운 아이템을 획득했어요!
-                    </DialogTitle>
-                    {total > 1 && (
-                      <p className="text-[13px] text-[#0FC8B8] font-pretendard font-medium">
-                        {earnedIndex + 1} / {total}
-                      </p>
-                    )}
-                    <p className="text-[14px] text-[#888888] text-center font-noto">
-                      [내 보관함]에서 확인하고 아이템을 심어보세요!
-                    </p>
-                  </div>
-                  <div className="relative">
-                    <div className="w-[120px] h-[120px] rounded-full bg-[#F5F5F5] flex items-center justify-center">
-                      {isNumbered && (
-                        <img
-                          src={`/assets/${theme}/${speciesNum}.png`}
-                          alt={name}
-                          className="w-[80px] h-[80px] object-contain"
-                        />
-                      )}
-                    </div>
-                    {rank && (
-                      <div className="absolute bottom-1 right-1">
-                        <RankBadge rank={rank} variant="overlay" />
-                      </div>
-                    )}
-                  </div>
-                  {name && (
-                    <p className="text-[15px] font-pretendard text-[#222222] -mt-2">{name}</p>
-                  )}
-                  <button onClick={nextEarned} className="w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto">
-                    {isLast ? "확인" : "다음"}
-                  </button>
-                </div>
-              </>
-            );
-          })()}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
