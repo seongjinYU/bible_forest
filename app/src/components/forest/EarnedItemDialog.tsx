@@ -30,9 +30,14 @@ export default function EarnedItemDialog({ theme, species, onClose }: EarnedItem
     else onClose();
   }
 
+  const titleText =
+    rank === "S" ? "✨ 전설의 아이템 등장! ✨"
+    : rank === "A" ? "오! 귀한 아이템을 획득했어요!"
+    : "와! 새로운 아이템을 획득했어요!";
+
   return (
     <Dialog open={species.length > 0} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent showCloseButton={false} className="p-0 gap-0 rounded-[12px]">
+      <DialogContent showCloseButton={false} className="p-0 gap-0 rounded-[12px] overflow-visible">
         <div className="flex items-center justify-end px-4 pt-4">
           <button onClick={onClose} className="w-10 h-10 flex items-center justify-center">
             <X size={20} className="text-[#222222]" />
@@ -40,8 +45,11 @@ export default function EarnedItemDialog({ theme, species, onClose }: EarnedItem
         </div>
         <div className="px-5 pb-6 flex flex-col items-center gap-5">
           <div className="flex flex-col items-center gap-1">
-            <DialogTitle className="text-[20px] font-bold text-[#222222] text-center font-noto leading-snug">
-              와! 새로운 아이템을 획득했어요!
+            <DialogTitle
+              key={`title-${index}`}
+              className={`text-[20px] font-bold text-center font-noto leading-snug ${rank === "S" ? "rank-s-title" : "text-[#222222]"}`}
+            >
+              {titleText}
             </DialogTitle>
             {total > 1 && (
               <p className="text-[13px] text-[#0FC8B8] font-pretendard font-medium">
@@ -53,7 +61,15 @@ export default function EarnedItemDialog({ theme, species, onClose }: EarnedItem
             </p>
           </div>
           <div className="relative">
-            <div className="w-[120px] h-[120px] rounded-full bg-[#F5F5F5] flex items-center justify-center">
+            <div
+              key={`thumb-${index}`}
+              className={`relative w-[120px] h-[120px] rounded-full bg-[#F5F5F5] flex items-center justify-center ${
+                rank === "A" ? "rank-a-pop rank-a-glow"
+                : rank === "S" ? "rank-s-pop rank-s-halo"
+                : ""
+              }`}
+            >
+              {rank === "S" && <div className="rank-s-rays" />}
               {isNumbered && (
                 <img
                   src={`/assets/${theme}/${speciesNum}.png`}
