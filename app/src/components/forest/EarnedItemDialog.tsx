@@ -10,6 +10,9 @@ import RankBadge from "./RankBadge";
 import SEffectCanvas from "./SEffectCanvas";
 import AEffectCanvas from "./AEffectCanvas";
 
+// A/S등급 파티클 이펙트 정식 적용 전까지 잠시 보류. true로 바꾸면 바로 재생됨.
+const EFFECTS_ENABLED = false;
+
 interface EarnedItemDialogProps {
   theme: ThemeKey;
   species: string[];
@@ -30,7 +33,7 @@ export default function EarnedItemDialog({ theme, species, onClose }: EarnedItem
   const rank = isNumbered ? getSpeciesRank(theme, speciesNum) : null;
   const total = species.length;
   const isLast = index === total - 1;
-  const effectPending = rank !== null && rank !== "B" && effectDoneFor !== index;
+  const effectPending = EFFECTS_ENABLED && rank !== null && rank !== "B" && effectDoneFor !== index;
   const playingSEffect = rank === "S" && effectPending;
   const playingAEffect = rank === "A" && effectPending;
 
