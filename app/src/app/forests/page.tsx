@@ -89,11 +89,7 @@ export default async function ForestsPage() {
   const pad = (n: number) => String(n).padStart(2, "0");
   const fetchedAtLabel = `${String(now.getUTCFullYear()).slice(-2)}.${pad(now.getUTCMonth() + 1)}.${pad(now.getUTCDate())} ${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())}`;
 
-  const myTeamStat = teamStats.find((t) => t.id === user.team_id);
-  const others = teamStats
-    .filter((t) => t.id !== user.team_id)
-    .sort((a, b) => b.score - a.score);
-  const sortedTeams = myTeamStat ? [myTeamStat, ...others] : others;
+  const sortedTeams = [...teamStats].sort((a, b) => b.score - a.score);
 
   return (
     <div className="relative flex flex-col h-dvh bg-white">
@@ -130,10 +126,16 @@ export default async function ForestsPage() {
           myTeamId={user.team_id}
           header={
             <div className="pb-2">
-              <h2 className="text-[20px] font-bold font-noto leading-[28px] text-[#222222] whitespace-nowrap">
+              <h2
+                className="font-pretendard text-[#222222] whitespace-nowrap"
+                style={{ fontWeight: 600, fontSize: 24, lineHeight: "130%", letterSpacing: "-0.025em" }}
+              >
                 현재 팀 순위를 확인해 보세요!
               </h2>
-              <p className="text-[13px] text-[#AAAAAA] font-pretendard mt-1">
+              <p
+                className="font-pretendard mt-1"
+                style={{ fontWeight: 300, fontSize: 16, lineHeight: "150%", letterSpacing: "-0.025em", color: "#13BD7F" }}
+              >
                 {fetchedAtLabel} 기준
               </p>
             </div>
@@ -145,7 +147,7 @@ export default async function ForestsPage() {
       <Link
         href="/"
         transitionTypes={["nav-back"]}
-        className="press-fx absolute left-5 right-5 h-[52px] rounded-full flex items-center justify-center text-white text-[16px] font-noto font-medium"
+        className="press-fx absolute left-6 right-6 h-12 rounded-[8px] flex items-center justify-center text-white text-[16px] font-noto font-medium"
         style={{
           bottom: "max(1.25rem, calc(env(safe-area-inset-bottom) + 0.75rem))",
           background: "linear-gradient(90deg, #0FC8B8 0%, #13BD7F 100%)",

@@ -48,7 +48,7 @@ export default function ForestsPullToRefresh({ children }: { children: React.Rea
   return (
     <div
       ref={scrollRef}
-      className="flex-1 overflow-y-auto px-4 pb-20"
+      className="flex-1 overflow-y-auto px-6 pb-20"
       style={{
         paddingTop: "max(1rem, env(safe-area-inset-top))",
         overscrollBehaviorY: "none",

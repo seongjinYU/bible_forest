@@ -18,11 +18,11 @@ function RankBadgeCircle({ rank }: { rank: number }) {
   const isTop = rank <= 3;
   return (
     <span
-      className="flex items-center justify-center w-6 h-6 rounded-full text-[13px] font-bold font-pretendard shrink-0"
+      className="flex items-center justify-center w-6 h-6 rounded-full text-[13px] font-bold font-pretendard shrink-0 text-white"
       style={
         isTop
-          ? { backgroundColor: "#13BD7F", color: "#FFFFFF" }
-          : { backgroundColor: "#EEEEEE", color: "#999999" }
+          ? { background: "linear-gradient(90deg, #0FC8B8 0%, #13BD7F 100%)" }
+          : { backgroundColor: "#AAAAAA" }
       }
     >
       {rank}
@@ -44,27 +44,27 @@ function TeamRankRow({
   const isTop = rank <= 3;
   const slogan = TOP_SLOGANS[rank];
   return (
-    <div className="flex items-center gap-3 py-3">
+    <div className="flex items-center gap-3" style={{ paddingTop: 22, paddingBottom: 22 }}>
       <RankBadgeCircle rank={rank} />
       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
         {slogan && (
-          <p className="text-[13px] text-[#AAAAAA] font-pretendard leading-snug truncate">
+          <p className="text-[13px] text-[#222222] font-pretendard leading-snug truncate">
             {slogan}
           </p>
         )}
-        <p
-          className={`font-noto leading-snug truncate flex items-center gap-1.5 ${
-            isTop ? "text-[17px] font-bold text-[#222222]" : "text-[15px] font-medium text-[#666666]"
-          }`}
-        >
-          {team.name}
+        <p className="leading-snug truncate flex items-center gap-1.5">
+          <span
+            className={`font-noto font-semibold ${
+              isTop ? "text-[17px] text-[#222222]" : "text-[15px] text-[#666666]"
+            }`}
+          >
+            {team.name}
+          </span>
           {isMyTeam && (
             <Image src="/assets/my_team.png" alt="내 팀" width={16} height={16} className="shrink-0" />
           )}
-        </p>
-        <p className="font-pretendard leading-snug">
           <span
-            className={isTop ? "text-[15px] font-bold" : "text-[13px] font-medium"}
+            className={`font-pretendard font-normal shrink-0 ${isTop ? "text-[15px]" : "text-[13px]"}`}
             style={{ color: "#13BD7F" }}
           >
             {team.score}점
@@ -73,7 +73,23 @@ function TeamRankRow({
       </div>
       <button
         onClick={onClickView}
-        className="shrink-0 px-3 py-1.5 rounded-full text-[13px] font-pretendard font-medium text-[#666666] bg-[#F5F5F5]"
+        className="shrink-0 font-pretendard"
+        style={{
+          width: 76,
+          height: 34,
+          borderRadius: 20,
+          paddingTop: 8,
+          paddingRight: 14,
+          paddingBottom: 8,
+          paddingLeft: 14,
+          background: "#DBF5EC",
+          fontWeight: 400,
+          fontSize: 14,
+          lineHeight: "150%",
+          letterSpacing: "-0.025em",
+          verticalAlign: "middle",
+          color: "#13BD7F",
+        }}
       >
         구경하기
       </button>
@@ -104,8 +120,8 @@ export default function ForestsRankingList({
   }
 
   return (
-    <>
-      {header}
+    <div>
+      <div key="ranking-header">{header}</div>
       <div className="flex flex-col divide-y divide-[#F0F0F0]">
         {teams.map((team, i) => (
           <TeamRankRow
@@ -138,6 +154,6 @@ export default function ForestsRankingList({
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
