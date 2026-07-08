@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { X } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ELEMENT_NAMES } from "@/constants/elements";
 import { getSpeciesRank } from "@/constants/rankings";
 import type { ThemeKey } from "@/constants/themes";
 import RankBadge from "./RankBadge";
+import SEffectCanvas from "./SEffectCanvas";
 
 interface EarnedItemDialogProps {
   theme: ThemeKey;
@@ -16,6 +17,9 @@ interface EarnedItemDialogProps {
 
 export default function EarnedItemDialog({ theme, species, onClose }: EarnedItemDialogProps) {
   const [index, setIndex] = useState(0);
+  // index가 바뀌면(다음 아이템으로 넘어가면) 이 Set에서 빠져있으므로 재생됨. 재생 완료 시 추가되어 멈춤.
+  const [effectDoneFor, setEffectDoneFor] = useState<number | null>(null);
+  const iconWrapRef = useRef<HTMLDivElement>(null);
 
   const currentSpecies = species[index] ?? null;
   const speciesNum = Number(currentSpecies);
@@ -24,6 +28,7 @@ export default function EarnedItemDialog({ theme, species, onClose }: EarnedItem
   const rank = isNumbered ? getSpeciesRank(theme, speciesNum) : null;
   const total = species.length;
   const isLast = index === total - 1;
+  const playingEffect = rank === "S" && effectDoneFor !== index;
 
   function next() {
     if (!isLast) setIndex((i) => i + 1);
@@ -32,7 +37,19 @@ export default function EarnedItemDialog({ theme, species, onClose }: EarnedItem
 
   return (
     <Dialog open={species.length > 0} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent showCloseButton={false} className="p-0 gap-0 rounded-[12px]">
+      {playingEffect && (
+        <SEffectCanvas
+          key={index}
+          theme={theme}
+          iconWrapRef={iconWrapRef}
+          onDone={() => setEffectDoneFor(index)}
+        />
+      )}
+      <DialogContent
+        showCloseButton={false}
+        className="p-0 gap-0 rounded-[12px]"
+        style={{ visibility: playingEffect ? "hidden" : "visible" }}
+      >
         <div className="flex items-center justify-end px-4 pt-4">
           <button onClick={onClose} className="w-10 h-10 flex items-center justify-center">
             <X size={20} className="text-[#222222]" />
@@ -41,7 +58,7 @@ export default function EarnedItemDialog({ theme, species, onClose }: EarnedItem
         <div className="px-5 pb-6 flex flex-col items-center gap-5">
           <div className="flex flex-col items-center gap-1">
             <DialogTitle className="text-[20px] font-bold text-[#222222] text-center font-noto leading-snug">
-              와! 새로운 아이템을 획득했어요!
+              {rank === "S" ? "✨ 전설의 아이템 등장! ✨" : "와! 새로운 아이템을 획득했어요!"}
             </DialogTitle>
             {total > 1 && (
               <p className="text-[13px] text-[#0FC8B8] font-pretendard font-medium">
@@ -53,14 +70,19 @@ export default function EarnedItemDialog({ theme, species, onClose }: EarnedItem
             </p>
           </div>
           <div className="relative">
-            <div className="w-[120px] h-[120px] rounded-full bg-[#F5F5F5] flex items-center justify-center">
-              {isNumbered && (
-                <img
-                  src={`/assets/${theme}/${speciesNum}.png`}
-                  alt={name}
-                  className="w-[80px] h-[80px] object-contain"
-                />
-              )}
+            <div
+              className="w-[120px] h-[120px] rounded-full bg-[#F5F5F5] flex items-center justify-center"
+              style={{ perspective: "140px" }}
+            >
+              <div ref={iconWrapRef} className="flex items-center justify-center">
+                {isNumbered && (
+                  <img
+                    src={`/assets/${theme}/${speciesNum}.png`}
+                    alt={name}
+                    className="w-[80px] h-[80px] object-contain"
+                  />
+                )}
+              </div>
             </div>
             {rank && (
               <div className="absolute bottom-1 right-1">
