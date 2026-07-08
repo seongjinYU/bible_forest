@@ -81,7 +81,7 @@ export default function AEffectCanvas({ theme, anchorRef, onDone }: AEffectCanva
     if (theme === "forest") {
       for (let i = 0; i < 18; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = 2 + Math.random() * 2.5;
+        const speed = 3.5 + Math.random() * 3.5;
         particles.push({
           x: cx,
           y: cy,
