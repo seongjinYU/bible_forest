@@ -6,6 +6,7 @@
 
 import { useEffect, useRef } from "react";
 import type { ThemeKey } from "@/constants/themes";
+import { drawLeaf, drawStar, drawDrop } from "./effectShapes";
 
 type Phase = "zoomIn" | "explode" | "zoomOut" | "done";
 
@@ -19,6 +20,8 @@ interface Particle {
   life: number; // 0~1, 1이면 소멸
   trail: { x: number; y: number }[];
   layer: "back" | "front";
+  rotation: number;
+  spin: number; // rotation 증가량/frame
 }
 
 const PALETTE: Record<ThemeKey, string[]> = {
@@ -97,6 +100,8 @@ export default function SEffectCanvas({ theme, iconWrapRef, onDone }: SEffectCan
         life: 0,
         trail: [],
         layer: "front",
+        rotation: Math.random() * Math.PI * 2,
+        spin: (Math.random() - 0.5) * 0.2,
       });
     }
 
@@ -126,6 +131,8 @@ export default function SEffectCanvas({ theme, iconWrapRef, onDone }: SEffectCan
         life: 0,
         trail: [],
         layer: "front",
+        rotation: Math.atan2(vy, vx),
+        spin: 0,
       });
     }
 
@@ -143,6 +150,8 @@ export default function SEffectCanvas({ theme, iconWrapRef, onDone }: SEffectCan
         life: 0,
         trail: [],
         layer: Math.sin(angle) > 0 ? "front" : "back",
+        rotation: angle,
+        spin: 0,
       });
     }
 
@@ -189,6 +198,8 @@ export default function SEffectCanvas({ theme, iconWrapRef, onDone }: SEffectCan
           life: 0,
           trail: [],
           layer: "front",
+          rotation: angle,
+          spin: theme === "forest" ? (Math.random() - 0.5) * 0.3 : 0,
         });
       }
 
@@ -241,10 +252,12 @@ export default function SEffectCanvas({ theme, iconWrapRef, onDone }: SEffectCan
           p.y = cy + Math.sin(p.vx) * p.vy * 0.5;
           p.vx += 0.03; // 각속도 증가
           p.layer = Math.sin(p.vx) > 0 ? "front" : "back";
+          p.rotation = p.vx;
         } else {
           p.x += p.vx;
           p.y += p.vy;
           p.vy += theme === "forest" && phase !== "zoomIn" ? 0.05 : 0;
+          if (theme === "forest") p.rotation += p.spin;
         }
 
         if (phase === "zoomOut" || phase === "explode" || phase === "done") {
@@ -270,9 +283,10 @@ export default function SEffectCanvas({ theme, iconWrapRef, onDone }: SEffectCan
           ctx.fillStyle = "#fff";
         }
 
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
+        if (theme === "forest") drawLeaf(ctx, p);
+        else if (theme === "night") drawStar(ctx, p);
+        else drawDrop(ctx, p);
+
         ctx.globalAlpha = 1;
         return true;
       });

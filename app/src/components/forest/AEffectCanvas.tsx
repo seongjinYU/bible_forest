@@ -6,6 +6,7 @@
 
 import { useEffect, useRef } from "react";
 import type { ThemeKey } from "@/constants/themes";
+import { drawLeaf, drawStar, drawDrop } from "./effectShapes";
 
 interface Particle {
   x: number;
@@ -17,6 +18,7 @@ interface Particle {
   life: number; // 0~1, 1이면 소멸
   phase: number; // 사인파 위상(우주/바다 진동용)
   isBig?: boolean;
+  rotation: number;
 }
 
 const PALETTE = {
@@ -89,6 +91,7 @@ export default function AEffectCanvas({ theme, anchorRef, onDone }: AEffectCanva
           color: pick(PALETTE.forest),
           life: 0,
           phase: 0,
+          rotation: Math.random() * Math.PI * 2,
         });
       }
     } else if (theme === "night") {
@@ -104,6 +107,7 @@ export default function AEffectCanvas({ theme, anchorRef, onDone }: AEffectCanva
           life: 0,
           phase: Math.random() * Math.PI * 2,
           isBig,
+          rotation: Math.random() * Math.PI * 2,
         });
       }
     } else {
@@ -119,6 +123,7 @@ export default function AEffectCanvas({ theme, anchorRef, onDone }: AEffectCanva
           color: pick(PALETTE.ocean),
           life: 0,
           phase: Math.random() * Math.PI * 2,
+          rotation: 0,
         });
       }
     }
@@ -141,6 +146,7 @@ export default function AEffectCanvas({ theme, anchorRef, onDone }: AEffectCanva
           p.vx *= 0.94;
           p.vy *= 0.94;
           p.life = elapsedFrames / forestDuration;
+          p.rotation += 0.06;
         } else if (theme === "night") {
           // 제자리에서 사인파로 반짝임
           p.life = elapsedFrames / nightDuration;
@@ -158,22 +164,10 @@ export default function AEffectCanvas({ theme, anchorRef, onDone }: AEffectCanva
 
         ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
         ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
 
-        if (theme === "night" && p.isBig) {
-          // 큰 별에 십자 빛줄기
-          ctx.strokeStyle = p.color;
-          ctx.lineWidth = 0.6;
-          const rayLen = p.size * 4;
-          ctx.beginPath();
-          ctx.moveTo(p.x - rayLen, p.y);
-          ctx.lineTo(p.x + rayLen, p.y);
-          ctx.moveTo(p.x, p.y - rayLen);
-          ctx.lineTo(p.x, p.y + rayLen);
-          ctx.stroke();
-        }
+        if (theme === "forest") drawLeaf(ctx, p);
+        else if (theme === "night") drawStar(ctx, p, p.isBig ? p.size * 4 : undefined);
+        else drawDrop(ctx, p);
 
         ctx.globalAlpha = 1;
         return true;
