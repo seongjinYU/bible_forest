@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { X } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
-import ForestsCardGrid from "./ForestsCardGrid";
+import ForestsRankingList from "./ForestsRankingList";
 import ActivityTicker, { type Activity } from "./ActivityTicker";
 import ForestsPullToRefresh from "./ForestsPullToRefresh";
 
@@ -96,23 +97,43 @@ export default async function ForestsPage() {
 
   return (
     <div className="relative flex flex-col h-dvh bg-white">
-      {/* 스크롤 영역 — 헤더 + 카드 모두 포함 */}
-      <ForestsPullToRefresh>
-        {/* 최근 활동 배너 */}
-        {shuffledActivities.length > 0 && (
-          <ActivityTicker initial={shuffledActivities} />
-        )}
+      {/* AppBar */}
+      <div
+        className="flex items-center px-4 pt-[22px] shrink-0 relative"
+        style={{ paddingTop: "max(22px, env(safe-area-inset-top))" }}
+      >
+        <h1 className="flex-1 text-center text-[17px] font-semibold font-pretendard text-[#222222]">
+          다른 팀 구경하러 가기
+        </h1>
+        <Link
+          href="/"
+          transitionTypes={["nav-back"]}
+          className="absolute right-4 w-[24px] h-[24px] flex items-center justify-center"
+          style={{ top: "max(18px, env(safe-area-inset-top))" }}
+          aria-label="닫기"
+        >
+          <X size={24} className="text-[#222222]" />
+        </Link>
+      </div>
 
-        {/* 스태거 카드 그리드 (헤더는 왼쪽 칼럼 상단에 포함) */}
-        <ForestsCardGrid
+      {/* 스크롤 영역 */}
+      <ForestsPullToRefresh>
+        <div key="activity-ticker">
+          {shuffledActivities.length > 0 && (
+            <ActivityTicker initial={shuffledActivities} />
+          )}
+        </div>
+
+        <ForestsRankingList
+          key="ranking-list"
           teams={sortedTeams}
           myTeamId={user.team_id}
           header={
             <div className="pb-2">
-              <h1 className="text-[24px] font-bold font-noto leading-[32px] text-[#222222] whitespace-pre-line">
-                {"현재 팀 순위를\n확인해 보세요!"}
-              </h1>
-              <p className="text-[14px] text-[#AAAAAA] font-pretendard mt-1">
+              <h2 className="text-[20px] font-bold font-noto leading-[28px] text-[#222222] whitespace-nowrap">
+                현재 팀 순위를 확인해 보세요!
+              </h2>
+              <p className="text-[13px] text-[#AAAAAA] font-pretendard mt-1">
                 {fetchedAtLabel} 기준
               </p>
             </div>
