@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Download, AlertCircle, Play, Pause } from "lucide-react";
+import { Download, AlertCircle, Play, Pause, X } from "lucide-react";
 import { THEMES, type ThemeKey } from "@/constants/themes";
 import { useTheme } from "@/context/ThemeContext";
 import { BGM_TITLE, useBgm } from "@/context/BgmContext";
@@ -431,27 +431,36 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
       {helpOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
           <div className="w-full max-w-[358px] bg-white rounded-[8px] overflow-hidden">
-            <div className="px-4 pt-9 pb-6 flex flex-col gap-6">
-              <div className="flex flex-col items-center gap-2">
-                <h2 className="text-[20px] font-medium leading-[28px] tracking-[-0.03em] text-[#222222] text-center font-noto">
+            <div className="flex items-center justify-end px-4 pt-4">
+              <button
+                onClick={() => setHelpOpen(false)}
+                className="w-10 h-10 flex items-center justify-center"
+                aria-label="닫기"
+              >
+                <X size={20} className="text-[#222222]" />
+              </button>
+            </div>
+            <div className="px-5 pb-6 flex flex-col gap-5">
+              <div className="flex flex-col items-center gap-1.5">
+                <h2 className="text-[17px] font-medium leading-[28px] tracking-[-0.03em] text-[#222222] text-center font-noto whitespace-nowrap">
                   성경읽기 인증하고 나무를 심어보세요!
                 </h2>
                 <p className="text-[16px] font-normal leading-[24px] tracking-[-0.03em] text-[#666666] text-center font-noto">
                   게임 참여 방법 안내
                 </p>
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 {INFO_ITEMS.map((item, i) => (
-                  <div key={i} className="flex items-start gap-2">
+                  <div key={i} className="flex items-start gap-2.5">
                     <div className="shrink-0 w-6 h-6 rounded-full bg-[#35985B] flex items-center justify-center mt-0.5">
                       <span className="text-[14px] font-medium text-white font-pretendard leading-none">{i + 1}</span>
                     </div>
                     <div className="flex flex-col gap-0.5">
-                      <p className="text-[16px] font-normal leading-[150%] text-[#000000] font-pretendard whitespace-pre-line">
+                      <p className="text-[14px] font-normal leading-[150%] text-[#000000] font-pretendard whitespace-pre-line">
                         {item.title}
                       </p>
                       {"sub" in item && (
-                        <p className="text-[15px] font-normal leading-[150%] text-[#999999] font-pretendard whitespace-pre-line">
+                        <p className="text-[13px] font-normal leading-[150%] text-[#999999] font-pretendard whitespace-pre-line">
                           {item.sub}
                         </p>
                       )}
@@ -462,7 +471,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
             </div>
             <button
               onClick={() => setHelpOpen(false)}
-              className="w-full py-3 bg-[#31C678] text-white text-[18px] font-medium font-noto"
+              className="w-full py-4 bg-[#31C678] text-white text-[18px] font-medium font-noto"
             >
               확인
             </button>
