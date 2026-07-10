@@ -40,7 +40,7 @@ const INFO_ITEMS = [
   },
   {
     title: "인증 시 랜덤으로 나무를 획득할 수 있어요!",
-    sub: "신약일독을 달성하면 특별한 나무가 주어져요!",
+    sub: "신약일독을 달성하면 특별한 나무를 심을 수 있어요!",
   },
   { title: "획득한 나무를 원하는 위치에 심어보세요!" },
   {
@@ -442,7 +442,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
             </div>
             <div className="px-5 pb-6 flex flex-col gap-5">
               <div className="flex flex-col items-center gap-1.5">
-                <h2 className="text-[17px] font-medium leading-[28px] tracking-[-0.03em] text-[#222222] text-center font-noto whitespace-nowrap">
+                <h2 className="text-[20px] font-medium leading-[28px] tracking-[-0.03em] text-[#222222] text-center font-noto whitespace-nowrap">
                   성경읽기 인증하고 나무를 심어보세요!
                 </h2>
                 <p className="text-[16px] font-normal leading-[24px] tracking-[-0.03em] text-[#666666] text-center font-noto">
@@ -469,12 +469,14 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
                 ))}
               </div>
             </div>
-            <button
-              onClick={() => setHelpOpen(false)}
-              className="w-full py-4 bg-[#31C678] text-white text-[18px] font-medium font-noto"
-            >
-              확인
-            </button>
+            <div className="px-4 pb-4">
+              <button
+                onClick={() => setHelpOpen(false)}
+                className="w-full h-12 rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto"
+              >
+                확인
+              </button>
+            </div>
           </div>
         </div>
       )}
