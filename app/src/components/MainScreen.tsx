@@ -39,14 +39,30 @@ const INFO_ITEMS = [
     sub: "1장은 점수만 부여되며, 10장 이상부터\n나무를 획득할 수 있어요!",
   },
   {
-    title: "인증 시 랜덤으로 나무를 획득할 수 있어요!",
-    sub: "신약일독을 달성하면 특별한 나무를 심을 수 있어요!",
+    title: (
+      <>
+        인증 시 <span className="font-bold">랜덤으로 나무를 획득</span>할 수 있어요!
+      </>
+    ),
+    sub: "신약일독을 달성하면\n특별한 나무를 심을 수 있어요!",
   },
-  { title: "획득한 나무를 원하는 위치에 심어보세요!" },
   {
-    title: "최종적으로 가장 점수가 높은 팀에게는\n수련회 당일 특별한 상품이 지급됩니다!",
+    title: (
+      <>
+        획득한 나무를 <span className="font-bold">원하는 위치</span>에 심어보세요!
+      </>
+    ),
   },
-] as const;
+  {
+    title: (
+      <>
+        최종적으로 <span className="font-bold">가장 점수가 높은 팀</span>에게는
+        <br />
+        수련회 당일 특별한 상품이 지급됩니다!
+      </>
+    ),
+  },
+];
 
 type ToastState = { message: string; action?: { label: string; onClick: () => void } } | null;
 
@@ -437,7 +453,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
                 className="w-10 h-10 flex items-center justify-center"
                 aria-label="닫기"
               >
-                <X size={20} className="text-[#222222]" />
+                <X size={20.85} className="text-[#222222]" />
               </button>
             </div>
             <div className="px-5 pb-6 flex flex-col gap-5">
@@ -456,11 +472,17 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
                       <span className="text-[14px] font-medium text-white font-pretendard leading-none">{i + 1}</span>
                     </div>
                     <div className="flex flex-col gap-0.5">
-                      <p className="text-[14px] font-normal leading-[150%] text-[#000000] font-pretendard whitespace-pre-line">
+                      <p
+                        className="font-normal text-[#000000] font-pretendard whitespace-pre-line"
+                        style={{ fontSize: 16, lineHeight: "150%", letterSpacing: "-0.025em" }}
+                      >
                         {item.title}
                       </p>
                       {"sub" in item && (
-                        <p className="text-[13px] font-normal leading-[150%] text-[#999999] font-pretendard whitespace-pre-line">
+                        <p
+                          className="font-normal text-[#999999] font-pretendard whitespace-pre-line"
+                          style={{ fontSize: 15, lineHeight: "140%", letterSpacing: "-0.025em" }}
+                        >
                           {item.sub}
                         </p>
                       )}
