@@ -447,7 +447,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
       {helpOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
           <div className="w-full max-w-[358px] bg-white rounded-[8px] overflow-hidden">
-            <div className="flex items-center justify-end px-4 pt-4">
+            <div className="flex items-center justify-end px-2 pt-2">
               <button
                 onClick={() => setHelpOpen(false)}
                 className="w-10 h-10 flex items-center justify-center"
