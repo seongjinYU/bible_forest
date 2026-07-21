@@ -7,10 +7,18 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
-import { NT_BOOKS, TOTAL_NT_CHAPTERS } from "@/constants/bible";
+import { TOTAL_NT_CHAPTERS } from "@/constants/bible";
 import { pickRandomSpecies, REWARD } from "@/constants/trees";
 import { THEMES } from "@/constants/themes";
 import type { ThemeKey } from "@/constants/themes";
+import {
+  normalizeBooksInput,
+  validateAndDedupeBooks,
+  computeNormalTreeTarget,
+  computeNextTreeRemaining,
+  isBibleCompleted,
+  resolveBibleCompletionFlag,
+} from "@/lib/bible-progress";
 
 export async function GET() {
   const user = await getSessionUser();
@@ -39,8 +47,8 @@ export async function GET() {
     total_chapters: totalChapters,
     total_nt_chapters: TOTAL_NT_CHAPTERS,
     trees_earned: treesEarned,
-    next_tree_remaining: (treesEarned + 1) * 10 - totalChapters,
-    completed_one_bible: totalChapters >= TOTAL_NT_CHAPTERS,
+    next_tree_remaining: computeNextTreeRemaining(treesEarned, totalChapters),
+    completed_one_bible: isBibleCompleted(totalChapters),
     special_tree_earned: user.special_tree_earned,
   });
 }
@@ -77,38 +85,23 @@ export async function PATCH(request: Request) {
   }
 
   // 3) 다권/단권 → 배열로 정규화
-  let rawBooks: unknown;
-  if (Array.isArray(body.books)) {
-    rawBooks = body.books;
-  } else if (typeof body.book_name === "string") {
-    rawBooks = [{ book_name: body.book_name, chapters: body.chapters }];
-  } else {
+  const rawBooks = normalizeBooksInput(body);
+  if (rawBooks === null) {
     return NextResponse.json({ message: "올바르지 않은 요청입니다." }, { status: 400 });
-  }
-  const list = rawBooks as Array<{ book_name?: unknown; chapters?: unknown }>;
-  if (!Array.isArray(list) || list.length === 0) {
-    return NextResponse.json({ message: "체크할 권이 없습니다." }, { status: 400 });
   }
 
   // 4) 검증 + 권별 dedupe (같은 권 중복 시 마지막 것 사용)
-  const bookMap = new Map<string, number[]>();
-  for (const b of list) {
-    if (typeof b.book_name !== "string" || !Array.isArray(b.chapters)) {
-      return NextResponse.json({ message: "올바르지 않은 요청입니다." }, { status: 400 });
-    }
-    const book = NT_BOOKS.find((x) => x.name === b.book_name);
-    if (!book) {
-      return NextResponse.json({ message: "올바르지 않은 책 또는 장입니다." }, { status: 400 });
-    }
-    const set = new Set<number>();
-    for (const c of b.chapters) {
-      if (typeof c !== "number" || !Number.isInteger(c) || c < 1 || c > book.chapters) {
-        return NextResponse.json({ message: "올바르지 않은 책 또는 장입니다." }, { status: 400 });
-      }
-      set.add(c);
-    }
-    bookMap.set(b.book_name, [...set].sort((a, b2) => a - b2));
+  const validated = validateAndDedupeBooks(rawBooks);
+  if (!validated.ok) {
+    const message =
+      validated.reason === "no_books"
+        ? "체크할 권이 없습니다."
+        : validated.reason === "invalid_shape"
+          ? "올바르지 않은 요청입니다."
+          : "올바르지 않은 책 또는 장입니다.";
+    return NextResponse.json({ message }, { status: 400 });
   }
+  const bookMap = validated.books;
 
   const supabase = createSupabaseServerClient();
 
@@ -168,7 +161,7 @@ export async function PATCH(request: Request) {
   let reclaimed = 0;
 
   // 8) 일반 나무 — 기준(floor(total/10))에 맞춰 지급 또는 회수 (한 번만)
-  const target = Math.floor(total / 10);
+  const target = computeNormalTreeTarget(total);
   if (target > earned) {
     const newRows = Array.from({ length: target - earned }, () => ({
       user_id: user.id,
@@ -211,15 +204,12 @@ export async function PATCH(request: Request) {
 
   // 9) 신약 일독 완료 알림 — 나무 지급 없이, 최초 1회만 알림 표시용 플래그를 세운다.
   //    special_tree_earned 컬럼을 "일독 완료 알림을 이미 받았는지" 플래그로 재사용.
-  let bibleCompletedNewly = false;
-  if (total >= TOTAL_NT_CHAPTERS && !special) {
-    await supabase.from("users").update({ special_tree_earned: true }).eq("id", user.id);
-    special = true;
-    bibleCompletedNewly = true;
-  } else if (total < TOTAL_NT_CHAPTERS && special) {
-    await supabase.from("users").update({ special_tree_earned: false }).eq("id", user.id);
-    special = false;
+  const { nextFlag, newlyCompleted } = resolveBibleCompletionFlag(total, special);
+  if (nextFlag !== special) {
+    await supabase.from("users").update({ special_tree_earned: nextFlag }).eq("id", user.id);
+    special = nextFlag;
   }
+  const bibleCompletedNewly = newlyCompleted;
 
   // 10) 응답
   return NextResponse.json({
@@ -227,8 +217,8 @@ export async function PATCH(request: Request) {
     total_chapters: total,
     total_nt_chapters: TOTAL_NT_CHAPTERS,
     trees_earned: earned,
-    next_tree_remaining: (earned + 1) * 10 - total,
-    completed_one_bible: total >= TOTAL_NT_CHAPTERS,
+    next_tree_remaining: computeNextTreeRemaining(earned, total),
+    completed_one_bible: isBibleCompleted(total),
     special_tree_earned: special,
     bible_completed_newly: bibleCompletedNewly,
     newly_earned: newlyEarned,

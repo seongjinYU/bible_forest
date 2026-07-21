@@ -6,9 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase";
 import ForestsRankingList from "./ForestsRankingList";
 import ActivityTicker, { type Activity } from "./ActivityTicker";
 import ForestsPullToRefresh from "./ForestsPullToRefresh";
-
-type PlantedTree = { species: string; x: number; y: number };
-type TeamStat = { id: string; name: string; score: number; tree_count: number; theme: string | null; plantedTrees: PlantedTree[] };
+import { computeTeamStats, sortTeamsByScore } from "./team-stats";
 
 function toSingle<T>(val: T | T[] | null | undefined): T | null {
   if (val === null || val === undefined) return null;
@@ -76,20 +74,13 @@ export default async function ForestsPage() {
   const shuffledActivities = initialActivities.slice(0, 5);
 
   // 팀 통계 계산
-  const teamStats: TeamStat[] = allTeams.map((team) => {
-    const teamUsers = allUsers.filter((u) => u.team_id === team.id);
-    const score = teamUsers.reduce((sum, u) => sum + (u.bible_progress[0]?.count ?? 0), 0);
-    const teamTrees = allTrees.filter((t) => t.team_id === team.id);
-    const tree_count = teamTrees.length;
-    const plantedTrees = teamTrees.map(({ species, x, y }) => ({ species, x, y }));
-    return { id: team.id, name: team.name, score, tree_count, theme: team.theme ?? null, plantedTrees };
-  });
+  const teamStats = computeTeamStats(allTeams, allTrees, allUsers);
 
   const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const pad = (n: number) => String(n).padStart(2, "0");
   const fetchedAtLabel = `${String(now.getUTCFullYear()).slice(-2)}.${pad(now.getUTCMonth() + 1)}.${pad(now.getUTCDate())} ${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())}`;
 
-  const sortedTeams = [...teamStats].sort((a, b) => b.score - a.score);
+  const sortedTeams = sortTeamsByScore(teamStats);
 
   return (
     <div className="relative flex flex-col h-dvh bg-white">

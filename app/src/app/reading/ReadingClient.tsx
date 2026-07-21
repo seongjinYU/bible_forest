@@ -7,61 +7,18 @@ import { cn } from "@/lib/utils";
 import { NT_BOOKS } from "@/constants/bible";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { isSessionExpired } from "@/lib/clientAuth";
+import {
+  formatChapters,
+  buildPillGroups,
+  buildProgressMap,
+  setEquals,
+  computeTreesDelta,
+  computeChaptersUntilNext,
+} from "./reading-progress";
 
-const COLS = 6;
 const GRADIENT = "linear-gradient(90deg, #0FC8B8 0%, #13BD7F 100%)";
 
-function formatChapters(chapters: number[]): string {
-  if (chapters.length === 0) return "없음";
-  const sorted = [...chapters].sort((a, b) => a - b);
-  const ranges: string[] = [];
-  let i = 0;
-  while (i < sorted.length) {
-    let j = i;
-    while (j + 1 < sorted.length && sorted[j + 1] === sorted[j] + 1) j++;
-    ranges.push(j === i ? `${sorted[i]}` : `${sorted[i]}~${sorted[j]}`);
-    i = j + 1;
-  }
-  return ranges.join(", ") + "장";
-}
-
-function buildPillGroups(sel: Set<number>): number[][] {
-  const sorted = Array.from(sel).sort((a, b) => a - b);
-  const groups: number[][] = [];
-  let cur: number[] = [];
-  for (const ch of sorted) {
-    if (cur.length === 0) {
-      cur.push(ch);
-    } else {
-      const prev = cur[cur.length - 1];
-      const consecutive = ch === prev + 1;
-      const startsNewRow = (ch - 1) % COLS === 0;
-      if (consecutive && !startsNewRow) cur.push(ch);
-      else { groups.push(cur); cur = [ch]; }
-    }
-  }
-  if (cur.length > 0) groups.push(cur);
-  return groups;
-}
-
 type BookType = (typeof NT_BOOKS)[number];
-
-function buildProgressMap(
-  rows: { book_name: string; chapter: number }[],
-): Map<string, Set<number>> {
-  const map = new Map<string, Set<number>>();
-  for (const { book_name, chapter } of rows) {
-    if (!map.has(book_name)) map.set(book_name, new Set());
-    map.get(book_name)!.add(chapter);
-  }
-  return map;
-}
-
-function setEquals(a: Set<number>, b: Set<number>): boolean {
-  if (a.size !== b.size) return false;
-  for (const x of a) if (!b.has(x)) return false;
-  return true;
-}
 
 type DragState = {
   startCh: number;
@@ -132,8 +89,8 @@ export default function ReadingClient({
   // 저장 후 총 장수 / 다음 아이템까지 계산
   const draftTotal = Array.from(draftByBook.values()).reduce((sum, s) => sum + s.size, 0);
   const currentTotal = Array.from(allProgress.values()).reduce((sum, s) => sum + s.size, 0);
-  const willEarnTrees = Math.floor(draftTotal / 10) - Math.floor(currentTotal / 10);
-  const chaptersUntilNext = draftTotal % 10 === 0 ? 10 : 10 - (draftTotal % 10);
+  const willEarnTrees = computeTreesDelta(currentTotal, draftTotal);
+  const chaptersUntilNext = computeChaptersUntilNext(draftTotal);
 
   function toggleChapter(ch: number) {
     setDraftByBook((prev) => {
