@@ -79,6 +79,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
   const { playing: bgmPlaying, toggle: toggleBgm } = useBgm();
   const [toast, setToast] = useState<ToastState>(null);
   const [earnedSpecies, setEarnedSpecies] = useState<string[]>([]);
+  const [showBibleCompletedPopup, setShowBibleCompletedPopup] = useState(false);
   const screenRef = useRef<HTMLDivElement>(null);
   const downloadOverlayRef = useRef<HTMLDivElement>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -107,6 +108,10 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
     let elapsed = 0;
     const interval = setInterval(() => {
       elapsed += POLL_MS;
+      if (sessionStorage.getItem("bible_completed_newly")) {
+        sessionStorage.removeItem("bible_completed_newly");
+        setShowBibleCompletedPopup(true);
+      }
       const earnedRaw = sessionStorage.getItem("newly_earned_species");
       if (earnedRaw) {
         sessionStorage.removeItem("newly_earned_species");
@@ -579,6 +584,38 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
           species={earnedSpecies}
           onClose={() => { setEarnedSpecies([]); router.refresh(); }}
         />
+      )}
+
+      {showBibleCompletedPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-[358px] bg-white rounded-[8px] overflow-hidden">
+            <div className="flex items-center justify-end px-2 pt-2">
+              <button
+                onClick={() => setShowBibleCompletedPopup(false)}
+                className="w-10 h-10 flex items-center justify-center"
+                aria-label="닫기"
+              >
+                <X size={20.85} className="text-[#222222]" />
+              </button>
+            </div>
+            <div className="px-5 pb-6 flex flex-col items-center gap-1.5">
+              <h2 className="text-[20px] font-medium leading-[28px] tracking-[-0.03em] text-[#222222] text-center font-noto">
+                축하합니다! 신약 일독을 달성했어요!
+              </h2>
+              <p className="text-[15px] font-normal leading-[140%] tracking-[-0.025em] text-[#666666] text-center font-pretendard">
+                곧 신약 일독 리워드가 지급될 예정이니 기대해주세요!
+              </p>
+            </div>
+            <div className="px-4 pb-4">
+              <button
+                onClick={() => setShowBibleCompletedPopup(false)}
+                className="w-full h-12 rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

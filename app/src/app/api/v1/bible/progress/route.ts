@@ -8,7 +8,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { NT_BOOKS, TOTAL_NT_CHAPTERS } from "@/constants/bible";
-import { pickRandomSpecies, SPECIAL_SPECIES, REWARD } from "@/constants/trees";
+import { pickRandomSpecies, REWARD } from "@/constants/trees";
 import { THEMES } from "@/constants/themes";
 import type { ThemeKey } from "@/constants/themes";
 
@@ -209,32 +209,14 @@ export async function PATCH(request: Request) {
     earned = target;
   }
 
-  // 9) 특별 나무 — 260장 기준 지급/회수
-  let specialNew = false;
+  // 9) 신약 일독 완료 알림 — 나무 지급 없이, 최초 1회만 알림 표시용 플래그를 세운다.
+  //    special_tree_earned 컬럼을 "일독 완료 알림을 이미 받았는지" 플래그로 재사용.
+  let bibleCompletedNewly = false;
   if (total >= TOTAL_NT_CHAPTERS && !special) {
-    await supabase.from("trees").insert({
-      user_id: user.id,
-      team_id: user.team_id,
-      tree_type: "special",
-      species: SPECIAL_SPECIES,
-      points: REWARD.SPECIAL_TREE_POINTS,
-    });
     await supabase.from("users").update({ special_tree_earned: true }).eq("id", user.id);
     special = true;
-    specialNew = true;
+    bibleCompletedNewly = true;
   } else if (total < TOTAL_NT_CHAPTERS && special) {
-    const { data: sp } = await supabase
-      .from("trees")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("tree_type", "special")
-      .order("obtained_at", { ascending: false })
-      .limit(1);
-    const sid = (sp ?? []).map((v) => v.id);
-    if (sid.length > 0) {
-      await supabase.from("trees").delete().in("id", sid);
-      reclaimed += sid.length;
-    }
     await supabase.from("users").update({ special_tree_earned: false }).eq("id", user.id);
     special = false;
   }
@@ -248,7 +230,7 @@ export async function PATCH(request: Request) {
     next_tree_remaining: (earned + 1) * 10 - total,
     completed_one_bible: total >= TOTAL_NT_CHAPTERS,
     special_tree_earned: special,
-    special_tree_newly_earned: specialNew,
+    bible_completed_newly: bibleCompletedNewly,
     newly_earned: newlyEarned,
     reclaimed_count: reclaimed,
   });

@@ -1,11 +1,8 @@
 import type { ThemeKey } from "./themes";
 import { RANK_WEIGHT, getSpeciesByRank, type Rank } from "./rankings";
 
-export const SPECIAL_SPECIES = "special";
-
 export const REWARD = {
   NORMAL_TREE_POINTS: 1,
-  SPECIAL_TREE_POINTS: 0,
 } as const;
 
 // 등급(B/A/S)별 가중치로 먼저 등급을 뽑고, 그 등급 안에서 species를 균등하게 뽑는다.

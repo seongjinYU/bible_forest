@@ -229,6 +229,9 @@ export default function ReadingClient({
       return;
     }
     const data = await res.json();
+    if (data.bible_completed_newly) {
+      sessionStorage.setItem("bible_completed_newly", "1");
+    }
     if (data.newly_earned?.length > 0) {
       sessionStorage.setItem(
         "newly_earned_species",
