@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 import { AVATAR_PALETTE } from "@/constants/avatars";
+import { getAvatarInitial } from "@/lib/avatarInitial";
 
 export interface Participant {
   nickname: string;
@@ -28,7 +29,7 @@ export default function ParticipantAvatars({ participants }: { participants: Par
               letterSpacing: "-0.03em",
             }}
           >
-            {p.nickname[0]}
+            {getAvatarInitial(p.nickname)}
           </div>
         );
       })}

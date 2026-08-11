@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { AVATAR_PALETTE } from "@/constants/avatars";
+import { getAvatarInitial } from "@/lib/avatarInitial";
 
 interface Participant {
   nickname: string;
@@ -80,7 +81,7 @@ export default function ParticipantsList({
                   className="w-[44px] h-[44px] rounded-full flex items-center justify-center text-[17px] font-semibold font-pretendard shrink-0"
                   style={{ backgroundColor: bg, color: fg }}
                 >
-                  {p.nickname[0]}
+                  {getAvatarInitial(p.nickname)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[16px] font-semibold font-pretendard text-[#222222] truncate">
