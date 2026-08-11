@@ -123,7 +123,7 @@ export default function ForestStatsCard({
         )}
 
         <div className="flex items-center justify-between">
-          <button onClick={goParticipants} className="flex items-center gap-2 text-left" disabled={!interactive}>
+          <button onClick={goParticipants} className="press-fx flex items-center gap-2 text-left" disabled={!interactive}>
             <span className={`text-[14px] font-pretendard ${isDarkBg ? "text-white" : "text-[#222222]"}`}>참여중</span>
             <ParticipantAvatars participants={participants} />
           </button>
@@ -131,7 +131,7 @@ export default function ForestStatsCard({
             interactive ? (
               <button
                 onClick={() => router.push("/reading", { transitionTypes: ["nav-forward"] })}
-                className="w-[76px] h-[34px] rounded-[20px] py-2 px-[14px] flex items-center justify-center text-white font-pretendard"
+                className="press-fx w-[76px] h-[34px] rounded-[20px] py-2 px-[14px] flex items-center justify-center text-white font-pretendard"
                 style={{ backgroundColor: currentTheme.color, fontWeight: 400, fontSize: 14, lineHeight: "150%", letterSpacing: "-0.025em" }}
               >
                 인증하기

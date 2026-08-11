@@ -58,7 +58,7 @@ export default function EarnedItemDialog({ theme, species, onClose }: EarnedItem
         style={{ visibility: playingSEffect ? "hidden" : "visible" }}
       >
         <div className="flex items-center justify-end px-4 pt-4">
-          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center">
+          <button onClick={onClose} className="press-fx w-10 h-10 flex items-center justify-center">
             <X size={20} className="text-[#222222]" />
           </button>
         </div>
@@ -111,7 +111,7 @@ export default function EarnedItemDialog({ theme, species, onClose }: EarnedItem
           {name && (
             <p className="text-[15px] font-pretendard text-[#222222] -mt-2">{name}</p>
           )}
-          <button onClick={next} className="w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto">
+          <button onClick={next} className="press-fx w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto">
             {isLast ? "확인" : "다음"}
           </button>
         </div>

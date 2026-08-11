@@ -217,6 +217,26 @@ button,
 }
 
 /* ───────────────────────────────────────────────
+   버튼 눌림 이펙트: 클릭 시 살짝 수축했다 부드럽게 복귀.
+   .press-fx가 붙은 요소(button, 버튼처럼 쓰이는 Link 등)에 적용.
+   ─────────────────────────────────────────────── */
+.press-fx {
+  transition: transform 0.15s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.press-fx:active {
+  transform: scale(0.96);
+  transition-duration: 0.08s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .press-fx {
+    transition: none;
+  }
+  .press-fx:active {
+    transform: none;
+  }
+}
+
+/* ───────────────────────────────────────────────
    화면 전환: 방향성 슬라이드 (네이티브 push/pop)
    components/TransitionShell 의 <ViewTransition key={pathname}> +
    Link/router 의 transitionTypes (nav-forward / nav-back) 와 짝을 이룬다.

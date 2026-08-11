@@ -73,7 +73,7 @@ function TeamRankRow({
       </div>
       <button
         onClick={onClickView}
-        className="shrink-0 font-pretendard"
+        className="press-fx shrink-0 font-pretendard"
         style={{
           width: 76,
           height: 34,
@@ -147,7 +147,7 @@ export default function ForestsRankingList({
             </div>
             <button
               onClick={() => setShowNoThemePopup(false)}
-              className="w-full py-3 bg-[#31C678] text-white text-[18px] font-medium font-noto"
+              className="press-fx w-full py-3 bg-[#31C678] text-white text-[18px] font-medium font-noto"
             >
               확인
             </button>

@@ -304,7 +304,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
           {bgmTitle ? (
             <button
               onClick={toggleBgm}
-              className={`min-w-[105px] h-[30px] rounded-[30px] border flex items-center gap-1 text-[12px] font-pretendard whitespace-nowrap ${
+              className={`press-fx min-w-[105px] h-[30px] rounded-[30px] border flex items-center gap-1 text-[12px] font-pretendard whitespace-nowrap ${
                 isDarkBg ? "border-white text-white" : "border-[#31C678] text-[#31C678]"
               }`}
               style={{
@@ -329,14 +329,14 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
           <div className="flex items-center gap-2">
             <button
               onClick={handleDownload}
-              className="w-[26px] h-[26px] flex items-center justify-center"
+              className="press-fx w-[26px] h-[26px] flex items-center justify-center"
               aria-label="이미지 저장"
             >
               <Download size={22} className={textPrimary} />
             </button>
             <button
               onClick={() => setHelpOpen(true)}
-              className="w-[26px] h-[26px] flex items-center justify-center"
+              className="press-fx w-[26px] h-[26px] flex items-center justify-center"
               aria-label="도움말"
             >
               <AlertCircle size={22} className={textPrimary} />
@@ -363,7 +363,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
                 <button
                   onClick={() => router.push("/storage", { transitionTypes: ["nav-forward"] })}
                   style={{ position: "relative", fontWeight: 400, fontSize: 14, lineHeight: "150%", letterSpacing: "-0.025em" }}
-                  className={`shrink-0 w-[79px] h-[34px] py-2 px-[14px] rounded-[20px] border flex items-center justify-center whitespace-nowrap font-pretendard ${
+                  className={`press-fx shrink-0 w-[79px] h-[34px] py-2 px-[14px] rounded-[20px] border flex items-center justify-center whitespace-nowrap font-pretendard ${
                     isDarkBg ? "border-white text-white" : "border-[#222222] text-[#222222]"
                   }`}
                 >
@@ -397,7 +397,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
                 <button
                   onClick={() => { setEditValue(currentName); setEditError(""); setEditOpen(true); }}
                   style={{ fontWeight: 400, fontSize: 14, lineHeight: "150%", letterSpacing: "-0.025em" }}
-                  className={`shrink-0 w-[82px] h-[34px] py-2 px-[14px] rounded-[20px] border flex items-center justify-center whitespace-nowrap font-pretendard ${
+                  className={`press-fx shrink-0 w-[82px] h-[34px] py-2 px-[14px] rounded-[20px] border flex items-center justify-center whitespace-nowrap font-pretendard ${
                     isDarkBg ? "border-white text-white" : "border-[#222222] text-[#222222]"
                   }`}
                 >
@@ -455,7 +455,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
             <div className="flex items-center justify-end px-2 pt-2">
               <button
                 onClick={() => setHelpOpen(false)}
-                className="w-10 h-10 flex items-center justify-center"
+                className="press-fx w-10 h-10 flex items-center justify-center"
                 aria-label="닫기"
               >
                 <X size={20.85} className="text-[#222222]" />
@@ -499,7 +499,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
             <div className="px-4 pb-4">
               <button
                 onClick={() => setHelpOpen(false)}
-                className="w-full h-12 rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto"
+                className="press-fx w-full h-12 rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto"
               >
                 확인
               </button>
@@ -515,7 +515,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
           {toast.action && (
             <button
               onClick={toast.action.onClick}
-              className="text-[#31C678] font-semibold"
+              className="press-fx text-[#31C678] font-semibold"
             >
               {toast.action.label}
             </button>
@@ -540,7 +540,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
             <div className="flex gap-2">
               <button
                 onClick={() => setEditOpen(false)}
-                className="flex-1 h-[50px] rounded-[8px] bg-[#F5F5F5] text-[#666666] text-[16px] font-medium font-noto"
+                className="press-fx flex-1 h-[50px] rounded-[8px] bg-[#F5F5F5] text-[#666666] text-[16px] font-medium font-noto"
               >
                 취소
               </button>
@@ -569,7 +569,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
                   setEditOpen(false);
                   router.refresh();
                 }}
-                className="flex-1 h-[50px] rounded-[8px] bg-[#31C678] text-white text-[16px] font-medium font-noto disabled:opacity-60"
+                className="press-fx flex-1 h-[50px] rounded-[8px] bg-[#31C678] text-white text-[16px] font-medium font-noto disabled:opacity-60"
               >
                 {editSaving ? "저장 중..." : "저장"}
               </button>
@@ -592,7 +592,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
             <div className="flex items-center justify-end px-2 pt-2">
               <button
                 onClick={() => setShowBibleCompletedPopup(false)}
-                className="w-10 h-10 flex items-center justify-center"
+                className="press-fx w-10 h-10 flex items-center justify-center"
                 aria-label="닫기"
               >
                 <X size={20.85} className="text-[#222222]" />
@@ -609,7 +609,7 @@ export default function MainScreen({ name, team, teamId, stats, plantedTrees, st
             <div className="px-4 pb-4">
               <button
                 onClick={() => setShowBibleCompletedPopup(false)}
-                className="w-full h-12 rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto"
+                className="press-fx w-full h-12 rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto"
               >
                 확인
               </button>

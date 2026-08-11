@@ -294,7 +294,7 @@ export default function PlaceTreeContent({
             <div className="px-6 pt-2 pointer-events-auto" style={{ paddingBottom: "max(15px, env(safe-area-inset-bottom))" }}>
               <button
                 onClick={() => setPreviewMode(false)}
-                className="w-full h-[48px] rounded-[8px] bg-white text-[#222222] text-[16px] font-pretendard flex items-center justify-center"
+                className="press-fx w-full h-[48px] rounded-[8px] bg-white text-[#222222] text-[16px] font-pretendard flex items-center justify-center"
               >
                 미리보기 종료
               </button>
@@ -406,7 +406,7 @@ export default function PlaceTreeContent({
             </div>
             <button
               onClick={() => setPreviewMode(true)}
-              className="shrink-0 flex flex-col items-center gap-0.5 text-white/70 hover:text-white"
+              className="press-fx shrink-0 flex flex-col items-center gap-0.5 text-white/70 hover:text-white"
               aria-label="메인 화면 미리보기"
             >
               <Eye size={20} />
@@ -425,14 +425,14 @@ export default function PlaceTreeContent({
           <div className="flex gap-3">
             <button
               onClick={() => router.push("/storage", { transitionTypes: ["nav-back"] })}
-              className="w-[88px] h-[54px] rounded-[8px] bg-white/20 text-white text-[17px] font-medium font-noto shrink-0"
+              className="press-fx w-[88px] h-[54px] rounded-[8px] bg-white/20 text-white text-[17px] font-medium font-noto shrink-0"
             >
               이전
             </button>
             <button
               onClick={() => setShowConfirm(true)}
               disabled={!position || isSubmitting}
-              className="flex-1 h-[54px] rounded-[8px] text-[17px] font-medium font-noto transition-opacity disabled:opacity-40 text-white"
+              className="press-fx flex-1 h-[54px] rounded-[8px] text-[17px] font-medium font-noto transition-opacity disabled:opacity-40 text-white"
               style={{ backgroundColor: position ? THEMES[theme].color : "rgba(255,255,255,0.2)" }}
             >
               {isSubmitting ? "배치 중..." : "배치 완료"}
@@ -456,14 +456,14 @@ export default function PlaceTreeContent({
             <div className="flex border-t border-[#F0F0F0]">
               <button
                 onClick={() => setShowConfirm(false)}
-                className="flex-1 h-[54px] text-[17px] font-medium font-noto text-[#666666] border-r border-[#F0F0F0]"
+                className="press-fx flex-1 h-[54px] text-[17px] font-medium font-noto text-[#666666] border-r border-[#F0F0F0]"
               >
                 이전
               </button>
               <button
                 onClick={() => { setShowConfirm(false); handleConfirm(); }}
                 disabled={isSubmitting}
-                className="flex-1 h-[54px] text-[17px] font-medium font-noto text-white bg-[#31C678] disabled:opacity-50"
+                className="press-fx flex-1 h-[54px] text-[17px] font-medium font-noto text-white bg-[#31C678] disabled:opacity-50"
               >
                 배치 완료
               </button>

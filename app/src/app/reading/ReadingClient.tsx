@@ -215,7 +215,7 @@ export default function ReadingClient({
         </h1>
         <button
           onClick={() => router.push("/", { transitionTypes: ["nav-back"] })}
-          className="absolute right-4 w-[24px] h-[24px] flex items-center justify-center"
+          className="press-fx absolute right-4 w-[24px] h-[24px] flex items-center justify-center"
           style={{ top: "max(18px, env(safe-area-inset-top))" }}
           aria-label="닫기"
         >
@@ -224,7 +224,7 @@ export default function ReadingClient({
       </div>
 
       <div className="px-5 pt-3 pb-4 relative shrink-0 flex items-center justify-between">
-        <button onClick={() => setDropdownOpen((v) => !v)} className="flex items-center gap-1.5">
+        <button onClick={() => setDropdownOpen((v) => !v)} className="press-fx flex items-center gap-1.5">
           <span
             className="text-[#222222] font-noto"
             style={{ fontWeight: 500, fontSize: 24, lineHeight: "150%", letterSpacing: "-0.025em" }}
@@ -256,7 +256,7 @@ export default function ReadingClient({
                   return next;
                 });
               }}
-              className="flex items-center gap-1.5 font-pretendard text-[#222222]"
+              className="press-fx flex items-center gap-1.5 font-pretendard text-[#222222]"
             >
               <span
                 className={cn(
@@ -288,7 +288,7 @@ export default function ReadingClient({
                     ref={isSelected ? selectedBookItemRef : undefined}
                     onClick={() => selectBook(book)}
                     className={cn(
-                      "w-full text-left px-4 py-3 text-[15px] font-noto border-b border-[#F5F5F5] last:border-0 flex items-center justify-between",
+                      "press-fx w-full text-left px-4 py-3 text-[15px] font-noto border-b border-[#F5F5F5] last:border-0 flex items-center justify-between",
                       isSelected ? "font-semibold" : "text-[#222222]",
                     )}
                     style={isSelected ? { color: "#0FC8B8" } : undefined}
@@ -417,7 +417,7 @@ export default function ReadingClient({
               return next;
             });
           }}
-          className="w-[88px] h-[54px] rounded-[8px] bg-[#F5F5F5] text-[#666666] font-noto text-center shrink-0"
+          className="press-fx w-[88px] h-[54px] rounded-[8px] bg-[#F5F5F5] text-[#666666] font-noto text-center shrink-0"
           style={{ fontWeight: 400, fontSize: 16, lineHeight: "150%", letterSpacing: "-0.025em" }}
         >
           초기화
@@ -425,7 +425,7 @@ export default function ReadingClient({
         <button
           onClick={handleComplete}
           disabled={!dirty || isSubmitting}
-          className="flex-1 h-[54px] rounded-[8px] bg-[#31C678] text-white font-noto text-center transition-opacity disabled:opacity-40"
+          className="press-fx flex-1 h-[54px] rounded-[8px] bg-[#31C678] text-white font-noto text-center transition-opacity disabled:opacity-40"
           style={{ fontWeight: 400, fontSize: 16, lineHeight: "150%", letterSpacing: "-0.025em" }}
         >
           {isSubmitting ? "저장 중..." : "완료"}
@@ -435,7 +435,7 @@ export default function ReadingClient({
       <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
         <DialogContent showCloseButton={false} className="p-0 gap-0 rounded-[12px]">
           <div className="flex items-center justify-end px-4 pt-4">
-            <button onClick={() => setShowConfirm(false)} className="w-10 h-10 flex items-center justify-center">
+            <button onClick={() => setShowConfirm(false)} className="press-fx w-10 h-10 flex items-center justify-center">
               <X size={20} className="text-[#222222]" />
             </button>
           </div>
@@ -483,7 +483,7 @@ export default function ReadingClient({
             <button
               onClick={handleConfirm}
               disabled={isSubmitting}
-              className="w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto disabled:opacity-50"
+              className="press-fx w-full h-[54px] rounded-[8px] bg-[#31C678] text-white text-[18px] font-medium font-noto disabled:opacity-50"
             >
               확인
             </button>
