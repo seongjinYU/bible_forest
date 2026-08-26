@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import type { ThemeKey } from "@/constants/themes";
 
-const BGM_MUTED_PATHS = ["/register"];
+const BGM_MUTED_PATHS = ["/register", "/closed"];
 
 export const BGM_SRC: Partial<Record<ThemeKey, string>> = {
   forest: "/assets/forest/bgm.mp3",
