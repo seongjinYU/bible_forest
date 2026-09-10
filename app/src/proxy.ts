@@ -7,7 +7,7 @@ import type { NextRequest } from "next/server";
 // │  /closed(종료 안내)로 리라이트된다. 다시 열려면 false로 바꾸고      │
 // │  재배포하면 된다.                                                  │
 // └─────────────────────────────────────────────────────────────────┘
-const SERVICE_CLOSED = true;
+const SERVICE_CLOSED = false;
 
 export function proxy(request: NextRequest) {
   if (!SERVICE_CLOSED) return NextResponse.next();
